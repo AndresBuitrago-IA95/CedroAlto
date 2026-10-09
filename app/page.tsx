@@ -44,7 +44,8 @@ const amenities = [
 ]
 
 const foods = [
-  ['DESAYUNO INCLUIDO', 'Desayuno Artesanal Campestre', 'Huevos al gusto, fruta fresca seleccionada, panes horneados, jugo natural y café especial de origen.', 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%282%29-8iejXvwJaFBgEvcEkkdciZl5kITUr9.jpeg'],
+  ['OPCIÓN 01', 'Arepa, huevos y chorizo', 'Ingredientes incluidos: arepa, chorizo, huevos, porción de fruta —2 frutas por persona— y café o chocolate. Puedes preparar tu desayuno a tu gusto.', '/desayuno-arepa-huevos.png'],
+  ['OPCIÓN 02', 'Croissant con fruta y bebida caliente', 'Ingredientes incluidos: croissant, porción de fruta —2 frutas por persona— y café o chocolate para disfrutar una mañana tranquila.', '/desayuno-croissant-fruta.png'],
 ]
 
 const testimonials = [
