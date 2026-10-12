@@ -26,12 +26,12 @@ const logoUrl = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-6F
 const whatsappUrl = 'https://api.whatsapp.com/send?phone=573012547427'
 
 const gallery = [
-  { title: 'Detalle personalizado', category: 'Detalles de bienvenida', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.44.45-awk7iwnxrwIuTxqWvpCm0Fp9muMu8Y.jpeg', large: true },
-  { title: 'Cena para compartir', category: 'Gastronomía', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%282%29-8iejXvwJaFBgEvcEkkdciZl5kITUr9.jpeg' },
+  { title: 'Detalle personalizado', category: 'Detalles de bienvenida', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/detalle-kCyYZW0trHH4BTBMZOS1WU51mEaVOw.jpeg', large: true },
+  { title: 'Desayuno para compartir', category: 'Gastronomía', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/desayuno-3w89hsOf7oYrAL7ADMgP5btZmsQaHb.jpeg' },
   { title: 'Balcón con vista verde', category: 'Vistas & Paisaje', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%281%29-qaGuoL0Kmijh6gEkkqeT4Gs9xqgKDu.jpeg' },
   { title: 'Jacuzzi con iluminación', category: 'Jacuzzi & Terraza', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%283%29-HohuJhz2xBXXYUPuzdSBzhBDLAGoCb.jpeg' },
   { title: 'Sauna en madera', category: 'Jacuzzi & Terraza', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.32%20%281%29-vqDO2cODmlnxLxzvZN7XDiFL0ry832.jpeg' },
-  { title: 'Sala para descansar', category: 'Habitación', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31-fpuEZZgwUshARGlUJKGXFXy2iA7UsF.jpeg' },
+  { title: 'Habitación', category: 'Habitación', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/habitacion-hOIHGLtvoPCjX1qoe8puT9NVi93rp9.jpeg' },
 ]
 
 const amenities = [
@@ -44,8 +44,8 @@ const amenities = [
 ]
 
 const foods = [
-  ['OPCIÓN 01', 'Arepa, huevos y chorizo', 'Ingredientes incluidos: arepa, chorizo, huevos, porción de fruta —2 frutas por persona— y café o chocolate. Puedes preparar tu desayuno a tu gusto.', '/desayuno-arepa-huevos.png'],
-  ['OPCIÓN 02', 'Croissant con fruta y bebida caliente', 'Ingredientes incluidos: croissant, porción de fruta —2 frutas por persona— y café o chocolate para disfrutar una mañana tranquila.', '/desayuno-croissant-fruta.png'],
+  ['DESAYUNO 1', 'Arepa blanca, chorizo y huevo', 'Arepa blanca, chorizo, huevo, porción de fruta y chocolate o café.', 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/desayuno-3w89hsOf7oYrAL7ADMgP5btZmsQaHb.jpeg'],
+  ['DESAYUNO 2', 'Arepa de chocolo, quesito y croissant', 'Arepa de chocolo, quesito, croissant, porción de fruta y chocolate o café.', 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/desayuno-3w89hsOf7oYrAL7ADMgP5btZmsQaHb.jpeg'],
 ]
 
 const testimonials = [
@@ -85,7 +85,7 @@ export default function Page() {
         <div className="booking-card" id="reservar"><div className="booking-field"><CalendarDays size={17} /><label>Llegada<input type="date" aria-label="Fecha de llegada" /></label></div><div className="booking-field"><CalendarDays size={17} /><label>Salida<input type="date" aria-label="Fecha de salida" /></label></div><div className="booking-field"><Bird size={17} /><label>Huéspedes<select aria-label="Número de huéspedes"><option>2 Adultos</option><option>2 Adultos, 1 niño</option><option>4 Adultos</option></select></label></div><a className="button button-dark booking-button" href={`${whatsappUrl}&text=Hola%20Cedro%20Alto%2C%20quiero%20consultar%20disponibilidad%20para%20mi%20estad%C3%ADa.`} target="_blank" rel="noreferrer">Consultar disponibilidad <ArrowRight size={15} /></a></div>
       </section>
 
-      <section className="experience section-shell" id="experiencia"><div className="experience-image image-card"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%282%29-8iejXvwJaFBgEvcEkkdciZl5kITUr9.jpeg" alt="Cena servida en la estancia Cedro Alto" /><span className="image-note">Una pausa que se queda contigo</span></div><div className="experience-copy"><SectionIntro eyebrow="La experiencia" title="El encanto de descansar en las alturas" copy="Diseñado para reconectar con lo esencial: sumérgete en un jacuzzi climatizado con hidromasaje privado, disfruta de la zona BBQ, y despierta con el canto de aves nativas como el barranquero." /><div className="feature-list"><div><span>01</span><strong>Jacuzzi hidromasaje privado</strong></div><div><span>02</span><strong>Zona BBQ para compartir</strong></div><div><span>03</span><strong>Avistamiento de aves nativas</strong></div></div><a href="#incluye" className="text-link">Conoce todas las comodidades <ArrowRight size={15} /></a></div></section>
+      <section className="experience section-shell" id="experiencia"><div className="experience-image image-card"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/compartir-REbtPKY7qfiDCHOUQAEAeBSYMYIyhW.jpeg" alt="Personas compartiendo en Cedro Alto" /><span className="image-note">Una pausa que se queda contigo</span></div><div className="experience-copy"><SectionIntro eyebrow="La experiencia" title="El encanto de descansar en las alturas" copy="Diseñado para reconectar con lo esencial: sumérgete en un jacuzzi climatizado con hidromasaje privado, disfruta de la zona BBQ, y despierta con el canto de aves nativas como el barranquero." /><div className="feature-list"><div><span>01</span><strong>Jacuzzi hidromasaje privado</strong></div><div><span>02</span><strong>Zona BBQ para compartir</strong></div><div><span>03</span><strong>Avistamiento de aves nativas</strong></div></div><a href="#incluye" className="text-link">Conoce todas las comodidades <ArrowRight size={15} /></a></div></section>
 
       <section className="gallery-section section-shell" id="galería"><SectionIntro eyebrow="Un lugar para mirar despacio" title="Momentos que se quedan" /><div className="filter-tabs">{filters.map((item) => <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div><div className="gallery-grid">{filteredGallery.map((item) => <figure key={item.title} className={item.large && filteredGallery.length > 3 ? 'gallery-item large' : 'gallery-item'}><img src={item.image} alt={item.title} /><figcaption><span>{item.category}</span><strong>{item.title}</strong></figcaption></figure>)}</div></section>
 
