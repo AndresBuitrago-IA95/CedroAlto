@@ -344,9 +344,9 @@ export default function AdminDashboard() {
     </form>}
 
     {tab === 'reservations' && <section className="admin-panel admin-data-panel">
-      <div className="admin-section-heading"><div><h2>Reservas y solicitudes</h2><p>Al abrir WhatsApp, la solicitud bloquea las fechas. Confirma para mantener la reserva o cancélala para liberar el calendario.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
+      <div className="admin-section-heading"><div><h2>Reservas y solicitudes</h2><p>Al crear la solicitud, las fechas se retienen por 15 minutos. Confirma dentro de ese plazo para mantener la reserva; si vence, se liberan automáticamente.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
       {normalReservations.length === 0 ? <p>No hay reservas ni solicitudes activas.</p> : <div className="admin-record-list">{normalReservations.map((reservation) => <article className="admin-record" key={reservation.id}>
-        <div><strong>{reservation.plan}</strong><p>{reservation.arrivalDate} a {reservation.departureDate}</p><small>{reservation.status === 'pending' ? 'Pendiente de confirmación — fechas bloqueadas hasta que confirmes o canceles.' : 'Confirmada — fechas bloqueadas.'}</small><small>Código: {reservation.id}</small></div>
+        <div><strong>{reservation.plan}</strong><p>{reservation.arrivalDate} a {reservation.departureDate}</p><small>{reservation.status === 'pending' ? `Pendiente — retención hasta ${reservation.expiresAt ? new Date(reservation.expiresAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' }) : '15 minutos después de la solicitud'}.` : 'Confirmada — fechas bloqueadas.'}</small><small>Código: {reservation.id}</small></div>
         <div className="admin-record-actions">{reservation.status === 'pending' && <button className="admin-confirm" onClick={() => void updateReservation(reservation.id, 'confirm')}><Check size={15} /> Confirmar</button>}<button className="admin-icon-button danger" aria-label="Cancelar reserva y liberar fechas" title="Cancelar reserva y liberar fechas" onClick={() => void updateReservation(reservation.id, 'remove')}><Trash2 size={16} /></button></div>
       </article>)}</div>}
     </section>}

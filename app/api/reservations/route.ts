@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { asc, eq, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { reservationNights, reservations, siteContent } from '@/lib/schema'
+import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
 import { defaultSiteContent } from '@/lib/site-content'
 import { isValidSiteContent } from '@/lib/site-content-validation'
 
@@ -27,6 +28,7 @@ export async function GET() {
     return NextResponse.json({ error: 'La disponibilidad en línea no está configurada.' }, { status: 503 })
   }
   try {
+    await expirePendingReservationHolds()
     const rows = await db
       .select({ date: reservationNights.reservationDate })
       .from(reservationNights)
@@ -97,7 +99,9 @@ export async function POST(request: Request) {
   }
 
   try {
+    await expirePendingReservationHolds()
     const reservationId = await db.transaction(async (tx) => {
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
       const [reservation] = await tx
         .insert(reservations)
         .values({
@@ -105,7 +109,7 @@ export async function POST(request: Request) {
           departureDate,
           plan,
           status: 'pending',
-          expiresAt: null,
+          expiresAt,
         })
         .returning({ id: reservations.id })
 

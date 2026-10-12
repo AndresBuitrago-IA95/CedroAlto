@@ -7,9 +7,9 @@
 1. Entra en [Neon Console](https://console.neon.tech/) y crea una cuenta o inicia sesión.
 2. Pulsa **New Project**, ponle un nombre (por ejemplo, `cedroalto`) y selecciona la región más cercana a tus usuarios. Neon crea una base de datos y un usuario para el proyecto.
 3. En la vista del proyecto pulsa **Connect**. Selecciona la rama y la base de datos creadas, activa **Pooled connection** y copia la cadena de conexión. Debe ser una URL PostgreSQL y usar SSL (`sslmode=require`). Trátala como contraseña: no la compartas ni la publiques.
-4. Abre el **SQL Editor** del proyecto Neon. En el repositorio abre `db/migrations/0001_reservation_holds.sql`, copia todo su contenido y ejecútalo. Después repite con `db/migrations/0002_admin_content.sql`, en ese orden. Espera a que cada migración termine correctamente antes de ejecutar la siguiente. No es necesario crear las tablas manualmente.
+4. Abre el **SQL Editor** del proyecto Neon. Ejecuta, en orden, `db/migrations/0001_reservation_holds.sql`, `db/migrations/0002_admin_content.sql` y `db/migrations/0003_pending_hold_expiration.sql`. Espera a que cada migración termine correctamente antes de ejecutar la siguiente. No es necesario crear las tablas manualmente. Si las dos primeras migraciones ya se ejecutaron, ejecuta solo la tercera; no repitas migraciones aplicadas.
 
-La primera migración conserva las fechas reservadas que existieran en la tabla anterior. Las solicitudes web bloquean cada noche del rango y permanecen pendientes hasta que el administrador las confirme o cancele desde el panel. La base de datos impide solapamientos simultáneos.
+La primera migración conserva las fechas reservadas que existieran en la tabla anterior. Las solicitudes web bloquean cada noche del rango por 15 minutos y aparecen pendientes en el panel; el administrador debe confirmarlas dentro de ese plazo. Las solicitudes vencidas se eliminan y sus fechas se liberan al consultar disponibilidad o al cargar el panel. La base de datos impide solapamientos simultáneos.
 
 ### 2. Configurar variables locales
 
@@ -35,8 +35,8 @@ La primera migración conserva las fechas reservadas que existieran en la tabla 
 ### 3. Probar reservas y panel de administración
 
 1. Abre `http://localhost:3000`. La disponibilidad se consulta en `http://localhost:3000/api/reservations`; una respuesta `200` con `{ "dates": [] }` significa que la API está conectada y no hay fechas ocupadas.
-2. Prueba un rango desde **Tarifas y disponibilidad** y envía la solicitud. La página debe crear la reserva pendiente en Neon y abrir WhatsApp con sus detalles.
-3. Abre `http://localhost:3000/admin` e inicia sesión con `ADMIN_USERNAME` y `ADMIN_PASSWORD`. Desde el panel puedes confirmar o cancelar solicitudes y modificar el contenido del sitio. La sesión se guarda en una cookie HTTP-only firmada y dura 8 horas.
+2. Prueba un rango desde **Tarifas y disponibilidad** y envía la solicitud. La página debe crear la reserva pendiente en Neon y abrir WhatsApp con sus detalles; pulsa **Enviar** en WhatsApp para compartirlos con el negocio. Las fechas se retienen por 15 minutos desde que se crea la solicitud.
+3. Abre `http://localhost:3000/admin` e inicia sesión con `ADMIN_USERNAME` y `ADMIN_PASSWORD`. Desde el panel puedes confirmar solicitudes dentro de los 15 minutos, cancelar solicitudes y modificar el contenido del sitio. La sesión se guarda en una cookie HTTP-only firmada y dura 8 horas.
 
 ### 4. Reseñas de huéspedes
 
@@ -53,7 +53,7 @@ Las cinco reseñas compartidas se sirven desde `lib/reviews.ts`, una por una, si
    - `ADMIN_PASSWORD`: la contraseña fuerte del panel.
    - `ADMIN_SESSION_SECRET`: secreto aleatorio de al menos 32 caracteres, distinto de la contraseña.
    - `BLOB_READ_WRITE_TOKEN`: solo si se cargarán imágenes desde el panel.
-5. Comprueba que ejecutaste las dos migraciones SQL en la base de datos de Neon que corresponde a esa `DATABASE_URL`. No vuelvas a ejecutarlas sobre una base que ya fue migrada.
+5. Comprueba que ejecutaste las migraciones SQL en la base de datos de Neon que corresponde a esa `DATABASE_URL`. Si la base ya tiene las migraciones 0001 y 0002, ejecuta la 0003 una sola vez. No vuelvas a ejecutar migraciones ya aplicadas.
 6. Pulsa **Deploy**. Cuando termine, abre la URL `*.vercel.app` asignada al proyecto.
 7. Verifica `https://TU-DOMINIO/api/reservations`: debe responder `200` y JSON con `dates`. Abre `https://TU-DOMINIO/admin`, inicia sesión y confirma que el panel carga las reservas. Haz una solicitud de prueba con fechas cercanas; cancélala después desde admin si no es una reserva real.
 8. Cada cambio posterior se publica haciendo `git push` a la rama conectada. Vercel construye un nuevo despliegue; si cambias variables de entorno, también debes redeplegar.

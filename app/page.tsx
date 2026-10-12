@@ -149,7 +149,8 @@ export default function Page() {
               `Total según tarifa publicada: ${formatCOP(total)}`,
               `Anticipo del 50%: ${formatCOP(total / 2)}. Saldo al ingreso: ${formatCOP(total / 2)}.`,
               `Código de solicitud: ${result.reservationId}`,
-              'Las fechas quedan bloqueadas mientras el equipo confirma o cancela esta solicitud.',
+              'Las fechas se retienen por 15 minutos. Esta solicitud queda pendiente de aprobación del equipo.',
+              'Por favor, pulsa Enviar en WhatsApp para compartir estos datos con Cedro Alto.',
             ].join('\n')
             window.location.assign(`${whatsappUrl}&text=${encodeURIComponent(message)}`)
           } catch (error) {

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, gt } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { verifyAdminRequest, requestHasValidOrigin } from '@/lib/admin-auth'
+import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
 import { reservations } from '@/lib/schema'
 
 export async function GET(request: Request) {
@@ -9,6 +10,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Debes iniciar sesión como administrador.' }, { status: 401 })
   }
   try {
+    await expirePendingReservationHolds()
     const active = await db.select().from(reservations).orderBy(asc(reservations.arrivalDate))
     return NextResponse.json({ reservations: active }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
@@ -38,11 +40,13 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'La reserva o el estado no son válidos.' }, { status: 400 })
   }
   try {
+    await expirePendingReservationHolds()
     const [updated] = await db.update(reservations)
       .set({ status: 'confirmed', expiresAt: null })
       .where(and(
         eq(reservations.id, input.id),
         eq(reservations.status, 'pending'),
+        gt(reservations.expiresAt, new Date()),
       ))
       .returning({ id: reservations.id })
     if (!updated) return NextResponse.json({ error: 'La reserva ya no está pendiente.' }, { status: 409 })

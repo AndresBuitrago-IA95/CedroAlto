@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyAdminRequest, requestHasValidOrigin } from '@/lib/admin-auth'
+import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
 import { reservationNights, reservations } from '@/lib/schema'
 
 function isDate(value: unknown): value is string {
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    await expirePendingReservationHolds()
     await db.transaction(async (tx) => {
       const [block] = await tx.insert(reservations).values({
         arrivalDate: input.startDate as string,
