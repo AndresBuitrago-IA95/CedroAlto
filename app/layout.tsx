@@ -2,6 +2,8 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Cedro Alto | Cerca de la ciudad, lejos del mundo',
   description: 'Glamping boutique en la montaña para reconectar con lo esencial. Jacuzzi privado, fogata bajo las estrellas y naturaleza a pocos minutos de la ciudad.',

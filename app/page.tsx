@@ -8,6 +8,7 @@ import {
   Bird,
   CalendarDays,
   Car,
+  ChevronLeft,
   ChevronDown,
   ChevronRight,
   Coffee,
@@ -22,94 +23,250 @@ import {
   Wifi,
   X,
 } from 'lucide-react'
+import { defaultSiteContent, type SiteContent } from '@/lib/site-content'
+import { allGoogleReviewsUrl, guestReviews } from '@/lib/reviews'
 
-const logoUrl = 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo-6FdQXDvKYx4uwSQQxkQphIj93qWWUA.jpg'
-const whatsappUrl = 'https://api.whatsapp.com/send?phone=573012547427'
+const amenityIcons = { BedDouble, Sparkles, Wifi, Home, Coffee, ShieldCheck }
 
-const gallery = [
-  { title: 'Detalle personalizado', category: 'Detalles de bienvenida', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/detalle-kCyYZW0trHH4BTBMZOS1WU51mEaVOw.jpeg', large: true },
-  { title: 'Desayuno para compartir', category: 'Gastronomía', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/desayuno-3w89hsOf7oYrAL7ADMgP5btZmsQaHb.jpeg' },
-  { title: 'Balcón con vista verde', category: 'Vistas & Paisaje', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%281%29-qaGuoL0Kmijh6gEkkqeT4Gs9xqgKDu.jpeg' },
-  { title: 'Jacuzzi con iluminación', category: 'Jacuzzi & Terraza', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31%20%283%29-HohuJhz2xBXXYUPuzdSBzhBDLAGoCb.jpeg' },
-  { title: 'Sauna en madera', category: 'Jacuzzi & Terraza', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.32%20%281%29-vqDO2cODmlnxLxzvZN7XDiFL0ry832.jpeg' },
-  { title: 'Habitación', category: 'Habitación', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/habitacion-hOIHGLtvoPCjX1qoe8puT9NVi93rp9.jpeg' },
-  { title: 'Sala para descansar', category: 'Habitación', image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/WhatsApp%20Image%202026-10-06%20at%2019.46.31-fpuEZZgwUshARGlUJKGXFXy2iA7UsF.jpeg' },
-]
+function dateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
 
-const amenities = [
-  [BedDouble, 'Confort & Descanso', 'Habitación principal con cama doble, segunda habitación con sofá cama y sala amplia.'],
-  [Sparkles, 'Bienestar Exclusivo', 'Jacuzzi climatizado y sauna de uso 100% privado.'],
-  [Wifi, 'Entretenimiento & Conexión', 'TV de 65 pulgadas, Wi-Fi de fibra óptica y bafle de sonido.'],
-  [Home, 'Espacios & Asados', 'Cocina dotada, baño completo, balcón con barra y zona BBQ.'],
-  [Coffee, 'Kit de Desayuno', 'Sabores artesanales y frescos para comenzar la mañana sin afanes.'],
-  [ShieldCheck, 'Detalle de bienvenida', 'Detalle personalizado con los nombres de nuestros huéspedes.'],
-]
+function addDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00.000Z`)
+  value.setUTCDate(value.getUTCDate() + days)
+  return value.toISOString().slice(0, 10)
+}
 
-const breakfastOptions = [
-  ['Desayuno 1', 'Arepa blanca · Chorizo · Huevo · Porción de fruta · Chocolate / café'],
-  ['Desayuno 2', 'Arepa de chocolo · Quesito · Croissant · Porción de fruta · Chocolate o café'],
-]
+function displayDate(date: string) {
+  return new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00.000Z`))
+}
 
-const testimonials = [
-  ['“La vista desde el jacuzzi al atardecer no tiene comparación. La comida y el café deliciosos.”', 'Camila & Juan'],
-  ['“Poder llevar a nuestra mascota y sentirnos tan cerca de la ciudad pero totalmente desconectados fue increíble.”', 'Daniel S.'],
-  ['“La atención al detalle, la cama cómoda y la zona BBQ hicieron la noche inolvidable.”', 'Marcela G.'],
-]
+function formatCOP(value: number) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
+}
+
+function amenityIcon(name: string) {
+  switch (name) {
+    case 'BedDouble': return BedDouble
+    case 'Wifi': return Wifi
+    case 'Home': return Home
+    case 'Coffee': return Coffee
+    case 'ShieldCheck': return ShieldCheck
+    default: return Sparkles
+  }
+}
 
 function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string; copy?: string }) {
   return <div className="section-intro"><span className="eyebrow">{eyebrow}</span><h2>{title}</h2>{copy && <p>{copy}</p>}</div>
 }
 
 export default function Page() {
+  const { data: remoteContent } = useSWR<SiteContent>('/api/site-content', async (url) => {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Site content is unavailable.')
+    return response.json()
+  }, { revalidateOnFocus: true })
+  const content = remoteContent ?? defaultSiteContent
   const [menuOpen, setMenuOpen] = useState(false)
   const [filter, setFilter] = useState('Todo')
   const [openInfo, setOpenInfo] = useState(0)
   const [mapOpen, setMapOpen] = useState(false)
+  const [reviewIndex, setReviewIndex] = useState(0)
   const [arrivalDate, setArrivalDate] = useState('')
   const [departureDate, setDepartureDate] = useState('')
-  const [plan, setPlan] = useState('Escapada entre semana')
+  const [plan, setPlan] = useState(defaultSiteContent.plans[0].name)
   const [bookingError, setBookingError] = useState('')
-  const { data: availability, mutate: refreshAvailability } = useSWR<{ dates: string[] }>('/api/reservations', (url) => fetch(url).then((response) => response.json()), { refreshInterval: 15000 })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+  const { data: availability, mutate: refreshAvailability, error: availabilityError } = useSWR<{ dates: string[] }>('/api/reservations', async (url) => {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Reservation availability is unavailable.')
+    return response.json()
+  }, { refreshInterval: 15000 })
   const unavailableDates = new Set(availability?.dates ?? [])
-  const locationUrl = 'https://www.google.com/maps?kgmid=/g/11mkxqnc1w&hl=es-419&shem=dlvs1,epsd1,rimspwouoe&shndl=17&kgs=bde20b200c53c860&um=1&ie=UTF-8&fb=1&gl=co&sa=X&geocode=KfNKSkUAgUaOMa9RjikRmmld&daddr=San+Antonio+de+Prado,+Medell%C3%ADn,+San+Antonio+de+Prado,+Medell%C3%ADn,+Antioquia'
-  const mapEmbedUrl = 'https://www.google.com/maps?q=San+Antonio+de+Prado,+Medell%C3%ADn,+Antioquia&output=embed'
-  const filteredGallery = filter === 'Todo' ? gallery : gallery.filter((item) => item.category === filter)
-  const filters = ['Todo', 'Habitación', 'Jacuzzi & Terraza', 'Vistas & Paisaje', 'Gastronomía']
+  const today = dateKey(new Date())
+  const firstWeekday = (calendarMonth.getDay() + 6) % 7
+  const daysInMonth = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate()
+  const calendarDays = Array.from({ length: firstWeekday + daysInMonth }, (_, index) => index < firstWeekday ? null : dateKey(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), index - firstWeekday + 1)))
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${content.whatsappPhone}`
+  const locationUrl = content.locationUrl
+  const mapEmbedUrl = content.mapEmbedUrl
+  const selectedPlan = content.plans.find((item) => item.name === plan) ?? content.plans[0]
+  const filteredGallery = (filter === 'Todo' ? content.gallery : content.gallery.filter((item) => item.category === filter))
+    .map((item) => item.title === 'Balcón con vista verde' && item.image.includes('qaGu')
+      ? { ...item, image: defaultSiteContent.gallery.find((galleryItem) => galleryItem.title === item.title)?.image ?? item.image }
+      : item)
+  const filters = ['Todo', ...new Set(content.gallery.map((item) => item.category))]
+  const [heroFirstLine, heroSecondLine] = content.heroTitle.split(', ', 2)
 
   return (
     <main>
       <header className="site-header">
-        <a href="#inicio" className="brand"><img src={logoUrl} alt="Cedro Alto — Cerca de la ciudad, lejos del mundo" /></a>
+        <a href="#inicio" className="brand"><img src={content.logoUrl} alt={content.businessName} /></a>
         <nav className={menuOpen ? 'main-nav open' : 'main-nav'} aria-label="Navegación principal">
           {['Experiencia', 'Galería', 'Qué incluye', 'Gastronomía', 'Tarifas', 'Ubicación', 'Información'].map((item) => <a key={item} href={`#${item.toLowerCase().replaceAll(' ', '-')}`} onClick={() => setMenuOpen(false)}>{item}</a>)}
         </nav>
-        <div className="header-actions"><a className="whatsapp-icon" href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Escribir por WhatsApp"><MessageCircle size={18} /></a><a href={`${whatsappUrl}&text=Hola%20Cedro%20Alto%2C%20quiero%20reservar%20una%20estad%C3%ADa.`} target="_blank" rel="noreferrer" className="button button-dark">Reservar ahora <ArrowRight size={15} /></a></div>
+        <div className="header-actions"><a className="whatsapp-icon" href={whatsappUrl} target="_blank" rel="noreferrer" aria-label="Escribir por WhatsApp"><MessageCircle size={18} /></a><a href={`${whatsappUrl}&text=${encodeURIComponent(`Hola ${content.businessName}, quiero reservar una estadía.`)}`} target="_blank" rel="noreferrer" className="button button-dark">Reservar ahora <ArrowRight size={15} /></a></div>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}>{menuOpen ? <X /> : <Menu />}</button>
       </header>
 
-      <section className="hero" id="inicio">
+      <section className="hero" id="inicio" style={{ backgroundImage: `url("${content.heroImage}")` }}>
         <div className="hero-overlay" />
-        <div className="hero-content"><span className="pill pill-light">Glamping boutique & desconexión natural</span><h1>Cerca de la ciudad,<br /><em>lejos del mundo</em></h1><p>Exclusividad, calma y confort de lujo inmerso en la serenidad de la montaña.</p><a href="#reservar" className="hero-link">Descubre la experiencia <ArrowRight size={16} /></a></div>
-        <form className="booking-card" id="reservar" onSubmit={async (event) => { event.preventDefault(); setBookingError(''); if (!arrivalDate || !departureDate) { setBookingError('Selecciona llegada y salida.'); return } if (unavailableDates.has(arrivalDate)) { setBookingError('La fecha de llegada ya está ocupada.'); return } const response = await fetch('/api/reservations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: arrivalDate, plan }) }); if (!response.ok) { setBookingError((await response.json()).error ?? 'No fue posible reservar esa fecha.'); await refreshAvailability(); return } await refreshAvailability(); const message = `Hola Cedro Alto, quiero reservar el plan ${plan}. Llegada: ${arrivalDate}. Salida: ${departureDate}.`; window.open(`${whatsappUrl}&text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer') }}><div className="booking-field"><CalendarDays size={17} /><label>Llegada<input type="date" aria-label="Fecha de llegada" value={arrivalDate} onChange={(event) => setArrivalDate(event.target.value)} required /></label></div><div className="booking-field"><CalendarDays size={17} /><label>Salida<input type="date" aria-label="Fecha de salida" value={departureDate} onChange={(event) => setDepartureDate(event.target.value)} required /></label></div><div className="booking-field"><Bird size={17} /><label>Plan<select aria-label="Plan de estadía" value={plan} onChange={(event) => setPlan(event.target.value)}><option>Escapada entre semana</option><option>Fin de semana & festivos</option><option>Plan Pasadía Express</option></select></label></div><button className="button button-dark booking-button" type="submit">Reservar por WhatsApp <ArrowRight size={15} /></button>{bookingError && <p className="booking-error" role="alert">{bookingError}</p>}</form>
+        <div className="hero-content"><span className="pill pill-light">{content.heroEyebrow}</span><h1>{heroFirstLine}{heroSecondLine && <><br /><em>{heroSecondLine}</em></>}</h1><p>{content.heroSubtitle}</p><a href="#reservar" className="hero-link">Descubre la experiencia <ArrowRight size={16} /></a></div>
+        <form className="booking-card" id="reservar" onSubmit={async (event) => {
+          event.preventDefault()
+          if (isSubmitting) return
+          setBookingError('')
+          const effectiveDepartureDate = selectedPlan.kind === 'day' && arrivalDate ? addDays(arrivalDate, 1) : departureDate
+          if (!arrivalDate || !effectiveDepartureDate || effectiveDepartureDate <= arrivalDate) {
+            setBookingError('Selecciona una fecha válida para tu plan.')
+            return
+          }
+          setIsSubmitting(true)
+          try {
+            const response = await fetch('/api/reservations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ arrivalDate, departureDate: effectiveDepartureDate, plan }),
+            })
+            const result = await response.json()
+            if (!response.ok) {
+              setBookingError(result.error ?? 'No fue posible reservar esas fechas.')
+              await refreshAvailability()
+              return
+            }
+            const nights = Math.round((Date.parse(`${effectiveDepartureDate}T00:00:00Z`) - Date.parse(`${arrivalDate}T00:00:00Z`)) / 86400000)
+            const rate = selectedPlan.price
+            const total = rate * (selectedPlan.kind === 'day' ? 1 : nights)
+            const message = [
+              'Hola Cedro Alto, quiero confirmar los detalles y el pago de esta reserva:',
+              `Plan: ${selectedPlan.name}`,
+              ...(selectedPlan.kind === 'day'
+                ? [`Fecha del plan: ${displayDate(arrivalDate)}`, `Tipo: ${selectedPlan.eyebrow}`, selectedPlan.description]
+                : [`Llegada: ${displayDate(arrivalDate)} (3:00 p. m.)`, `Salida: ${displayDate(effectiveDepartureDate)} (12:00 p. m.)`, `Noches: ${nights}`]),
+              `Tarifa publicada: ${formatCOP(rate)} ${selectedPlan.unit}`,
+              `Total según tarifa publicada: ${formatCOP(total)}`,
+              `Anticipo del 50%: ${formatCOP(total / 2)}. Saldo al ingreso: ${formatCOP(total / 2)}.`,
+              `Código de solicitud: ${result.reservationId}`,
+              'Las fechas quedan bloqueadas mientras el equipo confirma o cancela esta solicitud.',
+            ].join('\n')
+            window.location.assign(`${whatsappUrl}&text=${encodeURIComponent(message)}`)
+          } catch (error) {
+            console.error('Could not start the WhatsApp reservation flow:', error)
+            setBookingError('No fue posible iniciar la reserva. Verifica tu conexión e inténtalo de nuevo.')
+          } finally {
+            setIsSubmitting(false)
+          }
+        }}>
+          <div className="booking-field"><CalendarDays size={17} /><label>Llegada<input type="date" aria-label="Fecha de llegada" min={today} value={arrivalDate} onChange={(event) => { setArrivalDate(event.target.value); setDepartureDate('') }} required /></label></div>
+          {selectedPlan.kind !== 'day' && <div className="booking-field"><CalendarDays size={17} /><label>Salida<input type="date" aria-label="Fecha de salida" min={arrivalDate ? addDays(arrivalDate, 1) : today} value={departureDate} onChange={(event) => setDepartureDate(event.target.value)} required /></label></div>}
+          <div className="booking-field"><Bird size={17} /><label>Plan<select aria-label="Plan de estadía" value={selectedPlan.name} onChange={(event) => { setPlan(event.target.value); setDepartureDate('') }}>{content.plans.map((item) => <option key={item.name}>{item.name}</option>)}</select></label></div>
+          <button className="button button-dark booking-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Apartando fechas...' : 'Reservar por WhatsApp'} <ArrowRight size={15} /></button>
+          {(availabilityError || bookingError) && <div className="booking-error" role="alert">
+            <p>{bookingError || 'No fue posible consultar la disponibilidad en línea en este momento.'}</p>
+            <a href={`${whatsappUrl}&text=${encodeURIComponent(`Hola ${content.businessName}, ¿me ayudan a confirmar disponibilidad para ${arrivalDate ? displayDate(arrivalDate) : 'la fecha que deseo'}?`)}`} target="_blank" rel="noreferrer">Confirmar disponibilidad por WhatsApp <ArrowRight size={14} /></a>
+          </div>}
+        </form>
       </section>
 
-      <section className="experience section-shell" id="experiencia"><div className="experience-image image-card"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/compartir-REbtPKY7qfiDCHOUQAEAeBSYMYIyhW.jpeg" alt="Personas compartiendo en Cedro Alto" /><span className="image-note">Una pausa que se queda contigo</span></div><div className="experience-copy"><SectionIntro eyebrow="La experiencia" title="El encanto de descansar en las alturas" copy="Diseñado para reconectar con lo esencial: sumérgete en un jacuzzi climatizado con hidromasaje privado, disfruta de la zona BBQ, y despierta con el canto de aves nativas como el barranquero." /><div className="feature-list"><div><span>01</span><strong>Jacuzzi hidromasaje privado</strong></div><div><span>02</span><strong>Zona BBQ para compartir</strong></div><div><span>03</span><strong>Avistamiento de aves nativas</strong></div></div><a href="#incluye" className="text-link">Conoce todas las comodidades <ArrowRight size={15} /></a></div></section>
+      <section className="experience section-shell" id="experiencia">
+        <div className="experience-image image-card"><img src={content.experienceImage} alt={`Experiencia en ${content.businessName}`} /><span className="image-note">Una pausa que se queda contigo</span></div>
+        <div className="experience-copy"><SectionIntro eyebrow="La experiencia" title={content.experienceTitle} copy={content.experienceDescription} /><div className="feature-list">{content.amenities.slice(0, 3).map((item, index) => <div key={item.title}><span>{String(index + 1).padStart(2, '0')}</span><strong>{item.title}</strong></div>)}</div><a href="#qué-incluye" className="text-link">Conoce todas las comodidades <ArrowRight size={15} /></a></div>
+      </section>
 
-      <section className="gallery-section section-shell" id="galería"><SectionIntro eyebrow="Un lugar para mirar despacio" title="Momentos que se quedan" /><div className="filter-tabs">{filters.map((item) => <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div><div className="gallery-grid">{filteredGallery.map((item) => <figure key={item.title} className={item.large && filteredGallery.length > 3 ? 'gallery-item large' : 'gallery-item'}><img src={item.image} alt={item.title} /><figcaption><span>{item.category}</span><strong>{item.title}</strong></figcaption></figure>)}</div></section>
+      <section className="gallery-section section-shell" id="galería"><SectionIntro eyebrow="Un lugar para mirar despacio" title="Momentos que se quedan" /><div className="filter-tabs">{filters.map((item) => <button key={item} className={filter === item ? 'active' : ''} onClick={() => setFilter(item)}>{item}</button>)}</div><div className="gallery-grid">{filteredGallery.map((item, index) => <figure key={`${item.title}-${index}`} className={`gallery-item${index === 0 && filteredGallery.length > 3 ? ' large' : ''}${item.title === 'Detalle personalizado' ? ' personalized-detail' : ''}`}><img src={item.image} alt={item.title} /><figcaption><span>{item.category}</span><strong>{item.title}</strong></figcaption></figure>)}</div></section>
 
-      <section className="amenities-section section-shell" id="qué-incluye"><SectionIntro eyebrow="Todo pensado para ti" title="Comodidades exclusivas incluidas en tu estadía" /><div className="amenities-grid">{amenities.map(([Icon, title, copy]) => <div className="amenity-card" key={title as string}><Icon size={24} strokeWidth={1.3} /><h3>{title as string}</h3><p>{copy as string}</p></div>)}</div></section>
+      <section className="amenities-section section-shell" id="qué-incluye"><SectionIntro eyebrow="Todo pensado para ti" title="Comodidades exclusivas incluidas en tu estadía" /><div className="amenities-grid">{content.amenities.map((item, index) => { const Icon = amenityIcon(item.icon); return <div className="amenity-card" key={`${item.title}-${index}`}><Icon size={24} strokeWidth={1.3} /><h3>{item.title}</h3><p>{item.description}</p></div> })}</div></section>
 
-      <section className="food-section" id="gastronomía"><div className="section-shell"><SectionIntro eyebrow="Desayuno incluido" title="Sabores de origen en tu estadía" copy="Una sola imagen, dos formas de disfrutar los ingredientes incluidos para preparar tu desayuno." /><div className="food-grid"><article className="food-card"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/desayuno-3w89hsOf7oYrAL7ADMgP5btZmsQaHb.jpeg" alt="Desayuno servido con arepa, huevos, chorizo y fruta" /><div className="food-card-body"><span className="food-badge">Ingredientes incluidos</span>{breakfastOptions.map(([title, ingredients]) => <div className="breakfast-option" key={title}><h3>{title}</h3><p>{ingredients}</p></div>)}</div></article></div></div></section>
+      <section className="food-section" id="gastronomía"><div className="section-shell"><SectionIntro eyebrow="Desayuno incluido" title={content.breakfastTitle} copy={content.breakfastDescription} /><div className="food-grid breakfast-grid">
+        <figure className="food-photo-card"><img src={content.breakfastImage} alt="Desayuno servido con arepa, huevos, chorizo y fruta" /></figure>
+        <article className="food-card"><div className="food-card-body"><span className="food-badge">Dos opciones para elegir</span>{content.breakfasts.map((item, index) => <div className="breakfast-option" key={`${item.title}-${index}`}><span className="breakfast-number">{String(index + 1).padStart(2, '0')}</span><div><h3>{item.title}</h3><p>{item.description}</p></div></div>)}</div></article>
+      </div></div></section>
 
-      <section className="rates-section section-shell" id="tarifas"><SectionIntro eyebrow="Planifica tu pausa" title="Tarifas y disponibilidad" copy="Elige tus fechas y déjanos preparar una estadía inolvidable." /><div className="rates-layout"><div className="calendar-card"><div className="calendar-head"><button aria-label="Mes anterior"><ChevronRight className="rotate-180" size={17} /></button><strong>Octubre 2026</strong><button aria-label="Mes siguiente"><ChevronRight size={17} /></button></div><div className="weekdays">{['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => <span key={day}>{day}</span>)}</div><div className="calendar-grid">{Array.from({ length: 31 }, (_, i) => { const day = String(i + 1).padStart(2, '0'); const date = `2026-10-${day}`; const isBusy = unavailableDates.has(date); return <button key={i} className={isBusy ? 'busy' : i === 16 ? 'selected' : i % 7 === 4 || i % 7 === 5 ? 'busy' : ''} disabled={isBusy} aria-label={isBusy ? `Ocupado: ${i + 1} de octubre` : `Disponible: ${i + 1} de octubre`}>{i + 1}</button> })}</div><div className="calendar-legend"><span><i className="available" />Disponible</span><span><i className="busy-dot" />Ocupado</span><span><i className="selected-dot" />Seleccionado</span></div></div><div className="price-cards"><article className="price-card"><span className="eyebrow">Domingo a jueves</span><h3>Escapada entre semana</h3><strong className="price">$399.000 <small>COP / noche</small></strong><div className="check-times"><span>Check-in <b>3:00 PM</b></span><span>Check-out <b>12:00 PM</b></span></div><a className="button button-outline" href={`${whatsappUrl}&text=Hola%20Cedro%20Alto%2C%20quiero%20consultar%20disponibilidad%20y%20tarifas.`} target="_blank" rel="noreferrer">Seleccionar fechas <ArrowRight size={15} /></a></article><article className="price-card featured"><span className="popular">Experiencia completa</span><span className="eyebrow">Viernes a domingo y festivos</span><h3>Fin de semana & festivos</h3><strong className="price">$499.000 <small>COP / noche</small></strong><div className="check-times"><span>Check-in <b>3:00 PM</b></span><span>Check-out <b>12:00 PM</b></span></div><a className="button button-light" href={`${whatsappUrl}&text=Hola%20Cedro%20Alto%2C%20quiero%20reservar%20el%20plan%20de%20fin%20de%20semana.`} target="_blank" rel="noreferrer">Seleccionar fechas <ArrowRight size={15} /></a></article><article className="price-card"><span className="popular">Desconexión rápida</span><span className="eyebrow">Estancia de 6 horas</span><h3>Plan Pasadía Express</h3><strong className="price">$150.000 <small>COP</small></strong><div className="check-times"><span>Uso <b>6 horas</b></span><span>Incluye <b>Jacuzzi & sauna</b></span></div><p className="price-note">No incluye kit de desayuno ni botella de vino.</p><a className="button button-outline" href={`${whatsappUrl}&text=Hola%20Cedro%20Alto%2C%20quiero%20reservar%20el%20Plan%20Pasad%C3%ADa%20Express.`} target="_blank" rel="noreferrer">Reservar 6 horas <ArrowRight size={15} /></a></article></div></div><p className="payment-note">Garantiza tu estadía con un anticipo del 50%. El saldo se liquida al ingreso.</p></section>
+      <section className="rates-section section-shell" id="tarifas">
+        <SectionIntro eyebrow="Planifica tu pausa" title="Tarifas y disponibilidad" copy="Elige tus fechas y déjanos preparar una estadía inolvidable." />
+        <div className="rates-layout">
+          <div className="calendar-card">
+            <div className="calendar-head">
+              <button type="button" aria-label="Mes anterior" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}><ChevronRight className="rotate-180" size={17} /></button>
+              <strong>{new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(calendarMonth)}</strong>
+              <button type="button" aria-label="Mes siguiente" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}><ChevronRight size={17} /></button>
+            </div>
+            <div className="weekdays">{['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => <span key={day}>{day}</span>)}</div>
+            <div className="calendar-grid">
+              {calendarDays.map((date, index) => {
+                if (!date) return <span key={`empty-${index}`} aria-hidden="true" />
+                const isBusy = unavailableDates.has(date)
+                const isPast = date < today
+                const selected = date === arrivalDate || date === departureDate
+                const inRange = Boolean(arrivalDate && departureDate && date > arrivalDate && date < departureDate)
+                const isDepartureChoice = Boolean(selectedPlan.kind !== 'day' && arrivalDate && !departureDate && date > arrivalDate)
+                return <button
+                  key={date}
+                  type="button"
+                  className={`${isBusy ? 'busy' : ''}${selected ? ' selected' : ''}${inRange ? ' in-range' : ''}`}
+                  disabled={isPast || (isBusy && !isDepartureChoice)}
+                  aria-label={`${isBusy ? 'Ocupado' : 'Disponible'}: ${displayDate(date)}${selected ? ', seleccionado' : ''}`}
+                  onClick={() => {
+                    if (selectedPlan.kind === 'day') {
+                      setArrivalDate(date)
+                      setDepartureDate('')
+                    } else if (!arrivalDate || departureDate || date <= arrivalDate) {
+                      setArrivalDate(date)
+                      setDepartureDate('')
+                    } else {
+                      setDepartureDate(date)
+                    }
+                  }}
+                >{Number(date.slice(-2))}</button>
+              })}
+            </div>
+            <div className="calendar-legend"><span><i className="available" />Disponible</span><span><i className="busy-dot" />Ocupado</span><span><i className="selected-dot" />Seleccionado</span></div>
+            <p className="calendar-hint">{selectedPlan.kind === 'day' ? `Selecciona la fecha de tu plan ${selectedPlan.name}.` : arrivalDate && !departureDate ? 'Ahora selecciona tu fecha de salida.' : 'Selecciona llegada y salida; el día de salida no ocupa una noche.'}</p>
+          </div>
+          <div className="price-cards">
+            {content.plans.map((item) => <article className={`price-card${item.featured ? ' featured' : ''}`} key={item.name}>
+              {item.featured && <span className="popular">Experiencia destacada</span>}
+              <span className="eyebrow">{item.eyebrow}</span>
+              <h3>{item.name}</h3>
+              <strong className="price">{formatCOP(item.price)} <small>COP / {item.unit.replace('por ', '')}</small></strong>
+              <p className="price-note">{item.description}</p>
+              <a className={`button ${item.featured ? 'button-light' : 'button-outline'}`} href="#reservar" onClick={() => { setPlan(item.name); setDepartureDate('') }}>Seleccionar fechas <ArrowRight size={15} /></a>
+            </article>)}
+          </div>
+        </div>
+        <p className="payment-note">Garantiza tu estadía con un anticipo del 50%. El saldo se liquida al ingreso.</p>
+      </section>
 
-      <section className="location-section" id="ubicación"><div className="section-shell"><SectionIntro eyebrow="La ruta hacia tu refugio" title="Cómo llegar a Cedro Alto" /><div className="location-grid"><div className="map-card">{mapOpen ? <iframe className="map-embed" src={mapEmbedUrl} title="Mapa de ubicación de Cedro Alto" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <button className="map-art map-trigger" type="button" onClick={() => setMapOpen(true)} aria-label="Abrir mapa con la ruta hacia Cedro Alto"><div className="map-pin"><MapPin size={24} /></div><span className="map-label">Cedro Alto</span><div className="map-road road-one" /><div className="map-road road-two" /><span className="map-open-label">Abrir mapa y ruta</span></button>}<div className="map-footer"><span><Navigation size={15} /> Ubicación exacta</span><a href={locationUrl} target="_blank" rel="noreferrer">Abrir ruta en Google Maps <ArrowRight size={14} /></a></div></div><div className="location-facts"><div className="fact"><Mountain size={22} /><h3>Distancias clave</h3><p>A solo 15 minutos del parque principal de San Antonio de Prado.</p></div><div className="fact"><Car size={22} /><h3>Tipo de vehículo</h3><p>Vía pavimentada hasta el acceso. Apto para cualquier tipo de vehículo.</p></div><div className="fact"><Navigation size={22} /><h3>Navegación asistida</h3><div className="nav-buttons"><a href={locationUrl} target="_blank" rel="noreferrer">Google Maps <ArrowRight size={13} /></a><a href="https://www.waze.com/ul?q=Cedro%20Alto" target="_blank" rel="noreferrer">Waze <ArrowRight size={13} /></a></div></div></div></div></div></section>
+      <section className="location-section" id="ubicación"><div className="section-shell"><SectionIntro eyebrow="La ruta hacia tu refugio" title={`Cómo llegar a ${content.businessName}`} copy={content.contactAddress} /><div className="location-grid"><div className="map-card">{mapOpen ? <iframe className="map-embed" src={mapEmbedUrl} title={`Mapa de ubicación de ${content.businessName}`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" /> : <button className="map-art map-trigger" type="button" onClick={() => setMapOpen(true)} aria-label={`Abrir mapa con la ruta hacia ${content.businessName}`}><div className="map-pin"><MapPin size={24} /></div><span className="map-label">{content.businessName}</span><div className="map-road road-one" /><div className="map-road road-two" /><span className="map-open-label">Abrir mapa y ruta</span></button>}<div className="map-footer"><span><Navigation size={15} /> {content.contactAddress}</span><a href={locationUrl} target="_blank" rel="noreferrer">Abrir ruta en Google Maps <ArrowRight size={14} /></a></div></div><div className="location-facts"><div className="fact"><Mountain size={22} /><h3>Distancias clave</h3><p>A solo 8 minutos del parque principal de San Antonio de Prado.</p></div><div className="fact"><Car size={22} /><h3>Tipo de vehículo</h3><p>Vía pavimentada hasta el acceso. Apto para cualquier tipo de vehículo.</p></div><div className="fact"><Navigation size={22} /><h3>Navegación asistida</h3><div className="nav-buttons"><a href={locationUrl} target="_blank" rel="noreferrer">Google Maps <ArrowRight size={13} /></a><a href={`https://www.waze.com/ul?q=${encodeURIComponent(content.contactAddress)}`} target="_blank" rel="noreferrer">Waze <ArrowRight size={13} /></a></div></div></div></div></div></section>
 
-      <section className="info-section section-shell" id="información"><div className="info-heading"><SectionIntro eyebrow="Antes de tu llegada" title="Información importante & normas del lugar" /></div><div className="accordion-list">{[['Clima y ropa recomendada', 'Días templados (20°C - 23°C) y noches frescas de montaña (12°C - 15°C). Sugerimos abrigo térmico, chaqueta cortavientos y zapatos cómodos.'], ['Política pet friendly', 'Mascotas bienvenidas bajo reserva previa. Exigimos correa en zonas comunes y kit de aseo propio.'], ['Políticas de cancelación y pago', 'Aceptamos pagos electrónicos vía transferencia bancaria (Bancolombia, Nequi, PSE). Cancelaciones sin costo hasta 7 días antes de la fecha reservada.']].map(([title, copy], i) => <div className={`accordion ${openInfo === i ? 'open' : ''}`} key={title}><button onClick={() => setOpenInfo(openInfo === i ? -1 : i)}><span>{title}</span><ChevronDown size={18} /></button>{openInfo === i && <p>{copy}</p>}</div>)}</div></section>
+      <section className="info-section section-shell" id="información"><div className="info-heading"><SectionIntro eyebrow="Antes de tu llegada" title="Información importante & normas del lugar" /></div><div className="accordion-list">{content.policies.map((policy, index) => <div className={`accordion ${openInfo === index ? 'open' : ''}`} key={`${policy.title}-${index}`}><button onClick={() => setOpenInfo(openInfo === index ? -1 : index)}><span>{policy.title}</span><ChevronDown size={18} /></button>{openInfo === index && <p>{policy.description}</p>}</div>)}</div></section>
 
-      <section className="reviews-section"><div className="section-shell"><SectionIntro eyebrow="Palabras que inspiran" title="La experiencia de nuestros visitantes" /><div className="rating"><span>4.9 / 5.0</span><span className="stars">★★★★★</span><small>Huéspedes satisfechos</small></div><div className="reviews-grid">{testimonials.map(([quote, name]) => <blockquote key={name}><div className="quote-mark">“</div><p>{quote}</p><footer><span>{name}</span><span className="stars">★★★★���</span></footer></blockquote>)}</div></div></section>
+      <section className="reviews-section">
+        <div className="section-shell">
+          <SectionIntro eyebrow="Palabras que inspiran" title="La experiencia de nuestros visitantes" />
+          <div className="rating"><span>Opiniones de huéspedes</span><span className="stars" aria-label="Todas las reseñas tienen 5 de 5 estrellas">★★★★★</span><small>{guestReviews.length} experiencias compartidas</small></div>
+          <div className="review-carousel" aria-live="polite">
+            {(() => {
+              const review = guestReviews[reviewIndex]
+              return <blockquote className="review-slide" key={review.id}>
+                <div className="quote-mark">“</div>
+                <p>{review.text}</p>
+                <footer><span>{review.author}</span><span className="stars" aria-label={`${review.rating} de 5 estrellas`}>{'★'.repeat(review.rating)}</span><small>{review.published}</small></footer>
+              </blockquote>
+            })()}
+            <div className="review-controls">
+              <button type="button" aria-label="Reseña anterior" onClick={() => setReviewIndex((index) => (index - 1 + guestReviews.length) % guestReviews.length)}><ChevronLeft size={18} /></button>
+              <span>{reviewIndex + 1} / {guestReviews.length}</span>
+              <button type="button" aria-label="Siguiente reseña" onClick={() => setReviewIndex((index) => (index + 1) % guestReviews.length)}><ChevronRight size={18} /></button>
+            </div>
+          </div>
+          <a className="text-link reviews-more-link" href={allGoogleReviewsUrl} target="_blank" rel="noreferrer">Ver más opiniones en Google <ArrowRight size={15} /></a>
+        </div>
+      </section>
 
-      <footer className="site-footer" id="contacto"><div className="section-shell footer-grid"><div className="contact-copy"><span className="eyebrow">Hablemos de tu escapada</span><h2>¿Listo para bajar el ritmo?</h2><p>Escríbenos y déjanos ayudarte a encontrar las fechas perfectas para tu refugio en la montaña.</p><a className="button button-dark" href={whatsappUrl} target="_blank" rel="noreferrer">Escríbenos a WhatsApp <MessageCircle size={16} /></a><div className="social-links"><a href="https://www.instagram.com/luxury_cedro_alto?igsh=Mjd3eDVodW1obWUy" target="_blank" rel="noreferrer" aria-label="Instagram de Luxury Cedro Alto"><span className="instagram-mark" aria-hidden="true"><i /></span> <span>@luxury_cedro_alto</span></a><a href="https://www.facebook.com/search/pages/?q=Luxury%20Cedro%20Alto%20Glamping" target="_blank" rel="noreferrer" aria-label="Facebook de Luxury Cedro Alto"><span className="facebook-mark" aria-hidden="true">f</span> <span>Luxury Cedro Alto Glamping</span></a></div></div><form className="contact-form" onSubmit={(event) => event.preventDefault()}><input type="text" placeholder="Nombre completo" aria-label="Nombre completo" /><input type="email" placeholder="Correo electrónico" aria-label="Correo electrónico" /><input type="tel" placeholder="Teléfono / WhatsApp" aria-label="Teléfono o WhatsApp" /><textarea placeholder="Mensaje" aria-label="Mensaje" rows={4} /><button type="submit" className="button button-dark">Enviar consulta <ArrowRight size={15} /></button></form></div><div className="footer-brand"><img src={logoUrl} alt="Cedro Alto" /><p>Cerca de la ciudad, lejos del mundo</p><small>© 2026 Cedro Alto. Todos los derechos reservados.</small></div></footer>
+      <footer className="site-footer" id="contacto"><div className="section-shell footer-grid"><div className="contact-copy"><span className="eyebrow">Hablemos de tu escapada</span><h2>¿Listo para bajar el ritmo?</h2><p>Escríbenos y déjanos ayudarte a encontrar las fechas perfectas para tu refugio en la montaña.</p><a className="button button-dark" href={whatsappUrl} target="_blank" rel="noreferrer">Escríbenos a WhatsApp <MessageCircle size={16} /></a>{content.contactEmail && <p><a href={`mailto:${content.contactEmail}`}>{content.contactEmail}</a></p>}<div className="social-links"><a href={content.instagramUrl} target="_blank" rel="noreferrer" aria-label={`Instagram de ${content.businessName}`}><span className="instagram-mark" aria-hidden="true"><i /></span> <span>Instagram</span></a><a href={content.facebookUrl} target="_blank" rel="noreferrer" aria-label={`Facebook de ${content.businessName}`}><span className="facebook-mark" aria-hidden="true">f</span> <span>Facebook</span></a></div></div><form className="contact-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const message = [`Hola ${content.businessName}, quiero hacer una consulta.`, `Nombre: ${form.get('name')}`, `Correo: ${form.get('email')}`, `Teléfono: ${form.get('phone')}`, `Mensaje: ${form.get('message')}`].join('\n'); window.open(`${whatsappUrl}&text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer') }}><input name="name" type="text" placeholder="Nombre completo" aria-label="Nombre completo" required /><input name="email" type="email" placeholder="Correo electrónico" aria-label="Correo electrónico" /><input name="phone" type="tel" placeholder="Teléfono / WhatsApp" aria-label="Teléfono o WhatsApp" /><textarea name="message" placeholder="Mensaje" aria-label="Mensaje" rows={4} required /><button type="submit" className="button button-dark">Enviar consulta <ArrowRight size={15} /></button></form></div><div className="footer-brand"><img src={content.logoUrl} alt={content.businessName} /><p>{content.heroTitle}</p><small>© 2026 {content.businessName}. Todos los derechos reservados.</small></div></footer>
       <a className="floating-whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer"><MessageCircle size={21} /><span>¿Preguntas? Chatea con nosotros</span></a>
     </main>
   )

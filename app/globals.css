@@ -28,3 +28,123 @@ button { cursor:pointer; }
 @media (max-width:560px) { .site-header { left:12px; right:12px; }.brand { width:50px; height:50px; flex-basis:50px; }.whatsapp-icon { display:none; }.hero { min-height:760px; padding:145px 24px 285px; }.hero h1 { font-size:53px; }.hero-content p { font-size:14px; }.booking-card { left:18px; right:18px; bottom:25px; padding:15px; gap:14px; grid-template-columns:1fr 1fr; }.booking-field { gap:6px; }.booking-field label { font-size:8px; }.booking-field input, .booking-field select { width:100%; font-size:11px; }.booking-button { font-size:9px; padding:0 8px; }.section-shell { padding:75px 20px; }.image-card img { height:390px; }.amenities-grid, .food-grid { grid-template-columns:1fr 1fr; }.amenity-card { min-height:175px; padding:20px 15px; }.amenity-card h3 { font-size:16px; }.amenity-card p { font-size:11px; }.food-card img { height:130px; }.food-card-body { padding:15px; }.food-card h3 { font-size:17px; }.food-card p { font-size:11px; }.gallery-grid { grid-auto-rows:180px; gap:9px; }.location-facts { grid-template-columns:1fr; }.map-art { height:280px; }.calendar-card, .price-card { padding:20px 16px; }.calendar-legend { gap:9px; font-size:9px; }.info-section { gap:35px; }.floating-whatsapp { right:15px; bottom:15px; padding:13px; }.floating-whatsapp span { display:none; }.contact-copy h2 { font-size:45px; } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } *, *:before, *:after { transition:none!important; } }
 @layer base { * { border-color:var(--line); } }
+.calendar-grid button.selected { background:var(--green); color:#fff; }
+.calendar-grid button.in-range { background:#e9e4dc; color:var(--green); }
+.calendar-grid button:disabled { cursor:not-allowed; opacity:.55; }
+.calendar-hint { margin:14px 0 0; color:var(--muted); font-size:11px; line-height:1.6; }
+.reviews-grid footer { flex-wrap:wrap; gap:8px; }
+.reviews-grid footer a { color:var(--green); }
+.admin-screen { min-height:100vh; padding:40px max(22px,calc((100% - 1080px)/2)); background:#f5f2ed; }
+.admin-login { width:min(100%,440px); margin:8vh auto; padding:36px; display:grid; gap:18px; background:#fff; border:1px solid var(--line); box-shadow:0 18px 55px #1f24210c; }
+.admin-login h1, .admin-header h1 { margin:0; font:400 38px/1.08 var(--serif); }
+.admin-login > p { margin:0 0 8px; color:var(--muted); font-size:13px; line-height:1.7; }
+.admin-back { display:inline-flex; align-items:center; gap:8px; color:var(--green); font-size:12px; }
+.admin-field { min-width:0; display:grid; gap:7px; color:var(--ink); font-size:12px; }
+.admin-field > span { color:var(--muted); font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
+.admin-field input, .admin-field textarea, .admin-field select { width:100%; min-height:42px; padding:10px 12px; border:1px solid var(--line); border-radius:2px; background:#fff; color:var(--ink); font-size:13px; outline-color:var(--green); }
+.admin-field textarea { resize:vertical; line-height:1.6; }
+.admin-field small { color:var(--muted); font-size:10px; }
+.admin-error, .admin-banner { margin:0; padding:12px 15px; font-size:12px; line-height:1.6; }
+.admin-error, .admin-banner.error { color:#8f3029; background:#fae8e4; }
+.admin-banner.success { color:#244a2b; background:#e7f0e4; }
+.admin-dashboard { max-width:1200px; margin:0 auto; padding-top:32px; }
+.admin-header, .admin-header-actions, .admin-tabs, .admin-section-heading, .admin-record, .admin-record-actions { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.admin-header { margin-bottom:26px; }
+.admin-header .eyebrow { margin-bottom:8px; }
+.admin-header-actions { flex-wrap:wrap; }
+.admin-secondary, .admin-icon-button, .admin-confirm { min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:0 12px; border:1px solid var(--line); border-radius:2px; background:#fff; color:var(--green); font-size:11px; }
+.admin-icon-button { width:38px; padding:0; }
+.admin-icon-button:disabled { opacity:.45; cursor:not-allowed; }
+.admin-icon-button.danger { color:#a33b32; }
+.admin-confirm { border-color:#b9cfb2; color:#264e2b; background:#edf4e9; }
+.admin-tabs { justify-content:flex-start; overflow:auto; border-bottom:1px solid var(--line); }
+.admin-tabs button { min-height:48px; padding:0 16px; border:0; border-bottom:2px solid transparent; background:transparent; color:var(--muted); white-space:nowrap; font-size:12px; }
+.admin-tabs button.active { border-color:var(--green); color:var(--green); font-weight:700; }
+.admin-banner { margin:18px 0; }
+.admin-content-form { display:grid; gap:18px; padding-top:18px; }
+.admin-form-fieldset { min-width:0; display:grid; gap:18px; margin:0; padding:0; border:0; }
+.admin-panel { min-width:0; padding:25px; background:#fff; border:1px solid var(--line); }
+.admin-panel h2 { margin:0 0 18px; font:400 25px var(--serif); }
+.admin-panel h3 { margin:0; font:400 18px var(--serif); }
+.admin-panel p { color:var(--muted); font-size:12px; line-height:1.65; }
+.admin-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+.admin-image-grid { margin-top:20px; }
+.admin-image-field { display:grid; gap:10px; align-content:start; }
+.admin-image-field > img { width:100%; max-height:220px; object-fit:cover; background:var(--linen); }
+.admin-upload { width:max-content; max-width:100%; min-height:38px; display:flex; align-items:center; gap:8px; padding:0 12px; border:1px solid var(--line); color:var(--green); font-size:11px; cursor:pointer; }
+.admin-upload input { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+.admin-section-heading { margin-bottom:16px; }
+.admin-section-heading p { margin:5px 0 0; }
+.admin-repeat-card { display:grid; gap:16px; margin-top:16px; padding:18px; border:1px solid var(--line); background:#fcfbf9; }
+.admin-repeat-card .admin-section-heading { margin:0; }
+.admin-gallery-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.admin-checkbox { display:flex; align-items:center; gap:9px; color:var(--muted); font-size:12px; }
+.admin-checkbox input { accent-color:var(--green); }
+.admin-save-bar { position:sticky; z-index:5; bottom:12px; display:flex; justify-content:flex-end; padding:12px; pointer-events:none; }
+.admin-save-bar button { pointer-events:auto; box-shadow:0 5px 20px #1f242133; }
+.admin-data-panel { margin-top:18px; }
+.admin-record-list { display:grid; }
+.admin-record { padding:16px 0; border-top:1px solid var(--line); }
+.admin-record > div:first-child { min-width:0; }
+.admin-record strong { font-size:13px; }
+.admin-record p { margin:5px 0; }
+.admin-record small { color:var(--muted); font-size:10px; }
+.admin-record-actions { flex-shrink:0; }
+.admin-block-form { margin:24px 0 34px; align-items:end; }
+.admin-block-form .button { white-space:nowrap; }
+.admin-data-panel > h3 { margin:26px 0 10px; }
+.admin-date-list { padding-left:20px; color:var(--muted); font-size:12px; line-height:2; }
+@media (max-width:700px) {
+  .admin-screen { padding:20px 14px; }
+  .admin-login { margin:6vh auto; padding:25px; }
+  .admin-header { align-items:flex-start; flex-direction:column; }
+  .admin-header-actions { width:100%; justify-content:space-between; }
+  .admin-panel { padding:18px; }
+  .admin-form-grid, .admin-gallery-list { grid-template-columns:1fr; }
+  .admin-section-heading { align-items:flex-start; }
+  .admin-record { align-items:flex-start; }
+  .admin-block-form .button { justify-self:start; }
+}
+
+.food-grid.breakfast-grid { grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); align-items:stretch; gap:20px; }
+.food-photo-card { min-width:0; height:clamp(360px,40vw,460px); margin:0; overflow:hidden; background:var(--linen); }
+.food-photo-card img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 50%; transform:scale(1.1); }
+.food-card { display:flex; }
+.food-card-body { width:100%; display:flex; flex-direction:column; justify-content:center; padding:clamp(25px,4vw,48px); }
+.breakfast-option { display:grid; grid-template-columns:38px minmax(0,1fr); gap:16px; align-items:start; padding:25px 0; }
+.breakfast-option:first-of-type { margin-top:16px; border-top:1px solid var(--line); }
+.breakfast-option + .breakfast-option { margin-top:0; padding-top:25px; border-top:1px solid var(--line); }
+.breakfast-number { display:grid; width:34px; height:34px; place-items:center; border:1px solid #d9d0bf; border-radius:50%; color:var(--green); font-size:11px; }
+.food-card h3 { min-height:0; margin:0 0 10px; font-size:25px; }
+.food-card p { line-height:1.8; }
+.gallery-item.personalized-detail img { object-fit:contain; object-position:center; background:var(--linen); transform:none; }
+.gallery-item.personalized-detail:hover img { transform:none; }
+.gallery-item.personalized-detail::after { content:none; }
+.gallery-item.personalized-detail figcaption { top:14px; right:auto; bottom:auto; left:14px; padding:10px 12px; background:#faf8f5ed; color:var(--ink); }
+.gallery-item.personalized-detail figcaption span { color:var(--green); }
+.review-carousel { max-width:760px; margin:0 auto; }
+.review-slide { min-height:235px; margin:0; padding:34px 38px; background:#fff; }
+.review-slide > p { min-height:96px; margin:14px 0 28px; font:400 clamp(19px,2.6vw,25px)/1.45 var(--serif); }
+.review-slide footer { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px 18px; color:var(--muted); font-size:12px; }
+.review-controls { display:flex; justify-content:center; align-items:center; gap:18px; margin-top:18px; color:var(--muted); font-size:11px; }
+.review-controls button { width:38px; height:38px; display:grid; place-items:center; border:1px solid #c9c2b8; border-radius:50%; color:var(--green); background:transparent; }
+.review-controls button:disabled { opacity:.4; cursor:not-allowed; }
+.reviews-more-link { display:flex; width:max-content; margin:24px auto 0; }
+.booking-error { display:grid; gap:9px; padding:13px 16px; border-left:2px solid #a43d32; background:#fbf2ef; }
+.booking-error p { margin:0; color:#8f3029; font-size:12px; line-height:1.5; }
+.booking-error a { display:inline-flex; width:max-content; max-width:100%; align-items:center; gap:7px; color:var(--green); font-size:11px; font-weight:700; }
+.reviews-fallback { display:flex; justify-content:space-between; align-items:center; gap:24px; margin-top:34px; padding:26px 30px; border:1px solid #d9d1c5; background:#f4f0e9; }
+.reviews-fallback strong { font:400 21px var(--serif); }
+.reviews-fallback p { margin:7px 0 0; color:var(--muted); font-size:12px; line-height:1.6; }
+.reviews-fallback .button { flex-shrink:0; }
+@media (max-width:700px) {
+  .food-grid.breakfast-grid { grid-template-columns:1fr; gap:12px; margin-top:30px; }
+  .food-photo-card, .food-photo-card img { min-height:0; height:min(72vw,360px); }
+  .food-card-body { padding:25px 22px; }
+  .breakfast-option { grid-template-columns:32px minmax(0,1fr); gap:12px; padding:20px 0; }
+  .breakfast-option + .breakfast-option { padding-top:20px; }
+  .breakfast-number { width:30px; height:30px; }
+  .food-card h3 { font-size:23px; }
+  .review-slide { min-height:0; padding:26px 23px; }
+  .review-slide > p { min-height:0; margin:12px 0 24px; font-size:20px; }
+}
