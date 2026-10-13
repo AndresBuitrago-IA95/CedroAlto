@@ -3,6 +3,7 @@ import { asc, eq, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { reservationNights, reservations, siteContent } from '@/lib/schema'
 import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
+import { hasAllowedPlanReservationNights, isWeekdayOnlyPlan, isWeekendOnlyPlan, planReservationError } from '@/lib/reservation-rules'
 import { defaultSiteContent } from '@/lib/site-content'
 import { isValidSiteContent } from '@/lib/site-content-validation'
 
@@ -90,11 +91,18 @@ export async function POST(request: Request) {
 
   const nights = getNights(arrivalDate, departureDate)
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
+  const weekdayOnly = isWeekdayOnlyPlan(selectedPlan)
+  const dateRestrictedPlan = weekdayOnly || isWeekendOnlyPlan(selectedPlan)
+  const hasAllowedDateRange = !dateRestrictedPlan || hasAllowedPlanReservationNights(selectedPlan, arrivalDate, departureDate)
   if (
     arrivalDate < today ||
     departureDate <= arrivalDate ||
-    (selectedPlan.kind === 'day' ? nights.length !== 1 : nights.length > 30)
+    (selectedPlan.kind === 'day' ? nights.length !== 1 : nights.length > 30) ||
+    !hasAllowedDateRange
   ) {
+    if (!hasAllowedDateRange) {
+      return NextResponse.json({ error: planReservationError(selectedPlan) }, { status: 400 })
+    }
     return NextResponse.json({ error: 'El rango debe ser futuro y tener entre 1 y 30 noches.' }, { status: 400 })
   }
 

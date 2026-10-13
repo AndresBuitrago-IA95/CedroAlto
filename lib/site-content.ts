@@ -75,7 +75,7 @@ export const defaultSiteContent: SiteContent = {
   locationUrl: 'https://www.google.com/maps?kgmid=/g/11mkxqnc1w&hl=es-419&shem=dlvs1,epsd1,rimspwouoe&shndl=17&kgs=bde20b200c53c860&um=1&ie=UTF-8&fb=1&gl=co&sa=X&geocode=KfNKSkUAgUaOMa9RjikRmmld&daddr=San+Antonio+de+Prado,+Medell%C3%ADn,+San+Antonio+de+Prado,+Medell%C3%ADn,+Antioquia',
   mapEmbedUrl: 'https://www.google.com/maps?q=San+Antonio+de+Prado,+Medell%C3%ADn,+Antioquia&output=embed',
   plans: [
-    { name: 'Escapada entre semana', eyebrow: 'Domingo a jueves', price: 399000, unit: 'por noche', description: 'Check-in 3:00 PM · Check-out 12:00 PM', featured: false, kind: 'overnight' },
+    { name: 'Escapada entre semana', eyebrow: 'Lunes a jueves', price: 399000, unit: 'por noche', description: 'Check-in 3:00 PM · Check-out 12:00 PM', featured: false, kind: 'overnight' },
     { name: 'Fin de semana & festivos', eyebrow: 'Viernes a domingo y festivos', price: 499000, unit: 'por noche', description: 'Check-in 3:00 PM · Check-out 12:00 PM', featured: true, kind: 'overnight' },
     { name: 'Plan Pasadía Express', eyebrow: 'Estancia de 6 horas', price: 150000, unit: 'por pasadía', description: 'Incluye jacuzzi & sauna. No incluye desayuno ni botella de vino.', featured: false, kind: 'day' },
   ],
