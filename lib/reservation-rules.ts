@@ -97,3 +97,31 @@ export function hasAllowedPlanReservationNights(plan: Pick<EditablePlan, 'kind' 
 
   return true
 }
+
+export function getBogotaToday() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
+}
+
+export function getMinReservationDate() {
+  const today = getBogotaToday()
+  const date = new Date(`${today}T00:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + 1)
+  return date.toISOString().slice(0, 10)
+}
+
+export function getNightsBetween(arrivalDate: string, departureDate: string): string[] {
+  const nights: string[] = []
+  const date = new Date(`${arrivalDate}T00:00:00.000Z`)
+  const end = new Date(`${departureDate}T00:00:00.000Z`)
+  while (date < end) {
+    nights.push(date.toISOString().slice(0, 10))
+    date.setUTCDate(date.getUTCDate() + 1)
+  }
+  return nights
+}
+
+export function areNightsAvailable(arrivalDate: string, departureDate: string, unavailableNights: Set<string>): boolean {
+  const nights = getNightsBetween(arrivalDate, departureDate)
+  return nights.every((night) => !unavailableNights.has(night))
+}
+

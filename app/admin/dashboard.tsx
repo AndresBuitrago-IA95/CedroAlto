@@ -344,18 +344,18 @@ export default function AdminDashboard() {
     </form>}
 
     {tab === 'reservations' && <section className="admin-panel admin-data-panel">
-      <div className="admin-section-heading"><div><h2>Reservas y solicitudes</h2><p>Al crear la solicitud, las fechas se retienen por 15 minutos. Confirma dentro de ese plazo para mantener la reserva; si vence, se liberan automáticamente.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
+      <div className="admin-section-heading"><div><h2>Reservas y solicitudes</h2><p>Gestiona las solicitudes recibidas por WhatsApp. Al pulsar &quot;Confirmar&quot;, la reserva se aprueba y sus noches quedan bloqueadas en el calendario público. Si el cliente no concreta el anticipo, puedes descartar la solicitud.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
       {normalReservations.length === 0 ? <p>No hay reservas ni solicitudes activas.</p> : <div className="admin-record-list">{normalReservations.map((reservation) => <article className="admin-record" key={reservation.id}>
-        <div><strong>{reservation.plan}</strong><p>{reservation.arrivalDate} a {reservation.departureDate}</p><small>{reservation.status === 'pending' ? `Pendiente — retención hasta ${reservation.expiresAt ? new Date(reservation.expiresAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Bogota' }) : '15 minutos después de la solicitud'}.` : 'Confirmada — fechas bloqueadas.'}</small><small>Código: {reservation.id}</small></div>
+        <div><strong>{reservation.plan}</strong><p>{reservation.arrivalDate} (3:00 p. m.) a {reservation.departureDate} (12:00 m.)</p><small>{reservation.status === 'pending' ? 'Pendiente de confirmación y anticipo por WhatsApp.' : 'Confirmada — fechas bloqueadas en el calendario público.'}</small><small>Código: {reservation.id}</small></div>
         <div className="admin-record-actions">{reservation.status === 'pending' && <button className="admin-confirm" onClick={() => void updateReservation(reservation.id, 'confirm')}><Check size={15} /> Confirmar</button>}<button className="admin-icon-button danger" aria-label="Cancelar reserva y liberar fechas" title="Cancelar reserva y liberar fechas" onClick={() => void updateReservation(reservation.id, 'remove')}><Trash2 size={16} /></button></div>
       </article>)}</div>}
     </section>}
 
     {tab === 'availability' && <section className="admin-panel admin-data-panel">
-      <div className="admin-section-heading"><div><h2>Administrar disponibilidad</h2><p>Bloquea rangos por mantenimiento, uso privado u otras reservas externas. La fecha final también queda bloqueada.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
+      <div className="admin-section-heading"><div><h2>Administrar disponibilidad</h2><p>Bloquea fechas por mantenimiento, uso privado u otras reservas externas. Solo se bloquean las noches de estancia (3:00 p. m. a 12:00 m.); el día de salida queda disponible a las 3:00 p. m. para un nuevo ingreso. Si seleccionas la misma fecha en ambos campos, se bloquea esa única noche.</p></div><button className="admin-secondary" onClick={() => void loadDashboard()}>Actualizar</button></div>
       <form className="admin-form-grid admin-block-form" onSubmit={blockDates}>
-        <TextField label="Desde" type="date" value={blockStart} onChange={setBlockStart} />
-        <TextField label="Hasta (incluido)" type="date" value={blockEnd} onChange={setBlockEnd} />
+        <TextField label="Llegada (Check-in 3:00 PM)" type="date" value={blockStart} onChange={setBlockStart} />
+        <TextField label="Salida (Check-out 12:00 PM)" type="date" value={blockEnd} onChange={setBlockEnd} />
         <TextField label="Motivo (opcional)" value={blockReason} onChange={setBlockReason} />
         <button className="button button-dark" type="submit">Bloquear fechas</button>
       </form>

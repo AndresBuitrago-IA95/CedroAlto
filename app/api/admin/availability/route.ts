@@ -36,14 +36,27 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: 'Selecciona un rango de fechas y un motivo válidos.' }, { status: 400 })
   }
-  const start = new Date(`${input.startDate}T00:00:00Z`)
-  const dayAfterEnd = new Date(`${input.endDate}T00:00:00Z`)
-  dayAfterEnd.setUTCDate(dayAfterEnd.getUTCDate() + 1)
-  if ((dayAfterEnd.getTime() - start.getTime()) / 86_400_000 > 90) {
+
+  // Si startDate === endDate, se bloquea esa noche (check-in 3pm, check-out 12m del día siguiente).
+  // Si endDate > startDate, endDate es la fecha de salida a las 12m (la noche de endDate NO se bloquea).
+  const arrivalDate = input.startDate
+  let departureDate: string
+  if (input.endDate === input.startDate) {
+    const nextDay = new Date(`${input.startDate}T00:00:00Z`)
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1)
+    departureDate = nextDay.toISOString().slice(0, 10)
+  } else {
+    departureDate = input.endDate
+  }
+
+  const start = new Date(`${arrivalDate}T00:00:00Z`)
+  const end = new Date(`${departureDate}T00:00:00Z`)
+  if ((end.getTime() - start.getTime()) / 86_400_000 > 90) {
     return NextResponse.json({ error: 'Puedes bloquear hasta 90 días a la vez.' }, { status: 400 })
   }
+
   const dates: string[] = []
-  for (const current = new Date(start); current < dayAfterEnd; current.setUTCDate(current.getUTCDate() + 1)) {
+  for (const current = new Date(start); current < end; current.setUTCDate(current.getUTCDate() + 1)) {
     dates.push(current.toISOString().slice(0, 10))
   }
 
@@ -51,8 +64,8 @@ export async function POST(request: Request) {
     await expirePendingReservationHolds()
     await db.transaction(async (tx) => {
       const [block] = await tx.insert(reservations).values({
-        arrivalDate: input.startDate as string,
-        departureDate: dayAfterEnd.toISOString().slice(0, 10),
+        arrivalDate,
+        departureDate,
         plan: `Bloqueo manual${input.reason ? `: ${input.reason}` : ''}`,
         status: 'blocked',
         expiresAt: null,

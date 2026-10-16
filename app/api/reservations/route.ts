@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
-import { asc, eq, or } from 'drizzle-orm'
+import { asc, eq, inArray, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { reservationNights, reservations, siteContent } from '@/lib/schema'
 import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
-import { hasAllowedPlanReservationNights, isWeekdayOnlyPlan, isWeekendOnlyPlan, planReservationError } from '@/lib/reservation-rules'
+import {
+  getMinReservationDate,
+  getNightsBetween,
+  hasAllowedPlanReservationNights,
+  isWeekdayOnlyPlan,
+  isWeekendOnlyPlan,
+  planReservationError,
+} from '@/lib/reservation-rules'
 import { defaultSiteContent } from '@/lib/site-content'
 import { isValidSiteContent } from '@/lib/site-content-validation'
 
@@ -11,17 +18,6 @@ function isValidDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
   const parsed = new Date(`${value}T00:00:00.000Z`)
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
-}
-
-function getNights(arrivalDate: string, departureDate: string) {
-  const nights: string[] = []
-  const date = new Date(`${arrivalDate}T00:00:00.000Z`)
-  const end = new Date(`${departureDate}T00:00:00.000Z`)
-  while (date < end) {
-    nights.push(date.toISOString().slice(0, 10))
-    date.setUTCDate(date.getUTCDate() + 1)
-  }
-  return nights
 }
 
 export async function GET() {
@@ -37,7 +33,6 @@ export async function GET() {
       .where(or(
         eq(reservations.status, 'confirmed'),
         eq(reservations.status, 'blocked'),
-        eq(reservations.status, 'pending'),
       ))
       .orderBy(asc(reservationNights.reservationDate))
 
@@ -89,13 +84,16 @@ export async function POST(request: Request) {
   const selectedPlan = sitePlans.find((item) => item.name === plan)
   if (!selectedPlan) return NextResponse.json({ error: 'Ese plan ya no está disponible. Actualiza la página.' }, { status: 400 })
 
-  const nights = getNights(arrivalDate, departureDate)
-  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota' }).format(new Date())
+  const minArrivalDate = getMinReservationDate()
+  if (arrivalDate < minArrivalDate) {
+    return NextResponse.json({ error: 'Las reservas deben realizarse con al menos un día de anticipación (no es posible reservar para el mismo día).' }, { status: 400 })
+  }
+
+  const nights = getNightsBetween(arrivalDate, departureDate)
   const weekdayOnly = isWeekdayOnlyPlan(selectedPlan)
   const dateRestrictedPlan = weekdayOnly || isWeekendOnlyPlan(selectedPlan)
   const hasAllowedDateRange = !dateRestrictedPlan || hasAllowedPlanReservationNights(selectedPlan, arrivalDate, departureDate)
   if (
-    arrivalDate < today ||
     departureDate <= arrivalDate ||
     (selectedPlan.kind === 'day' ? nights.length !== 1 : nights.length > 30) ||
     !hasAllowedDateRange
@@ -108,32 +106,37 @@ export async function POST(request: Request) {
 
   try {
     await expirePendingReservationHolds()
-    const reservationId = await db.transaction(async (tx) => {
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000)
-      const [reservation] = await tx
-        .insert(reservations)
-        .values({
-          arrivalDate,
-          departureDate,
-          plan,
-          status: 'pending',
-          expiresAt,
-        })
-        .returning({ id: reservations.id })
 
-      await tx.insert(reservationNights).values(
-        nights.map((reservationDate) => ({ reservationDate, reservationId: reservation.id })),
-      )
+    // Validar que ninguna noche solicitada esté ya confirmada o bloqueada
+    if (nights.length > 0) {
+      const busyRows = await db
+        .select({ date: reservationNights.reservationDate })
+        .from(reservationNights)
+        .where(inArray(reservationNights.reservationDate, nights))
 
-      return reservation.id
-    })
-
-    return NextResponse.json({ ok: true, reservationId }, { status: 201 })
-  } catch (error) {
-    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
-      return NextResponse.json({ error: 'Una o más fechas acaban de ser reservadas. Elige otras fechas.' }, { status: 409 })
+      if (busyRows.length > 0) {
+        return NextResponse.json({ error: 'Una o más fechas seleccionadas ya no están disponibles. Elige otras fechas.' }, { status: 409 })
+      }
     }
-    console.error('Failed to create reservation hold:', error)
-    return NextResponse.json({ error: 'No fue posible bloquear las fechas. Inténtalo de nuevo.' }, { status: 500 })
+
+    // Registramos la solicitud pendiente SIN bloquear las noches públicamente,
+    // para evitar que personas ociosas bloqueen las fechas a otros visitantes.
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    const [reservation] = await db
+      .insert(reservations)
+      .values({
+        arrivalDate,
+        departureDate,
+        plan,
+        status: 'pending',
+        expiresAt,
+      })
+      .returning({ id: reservations.id })
+
+    return NextResponse.json({ ok: true, reservationId: reservation.id }, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create reservation request:', error)
+    return NextResponse.json({ error: 'No fue posible registrar la solicitud. Inténtalo de nuevo.' }, { status: 500 })
   }
 }
+

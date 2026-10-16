@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server'
-import { and, asc, eq, gt } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { verifyAdminRequest, requestHasValidOrigin } from '@/lib/admin-auth'
 import { expirePendingReservationHolds } from '@/lib/reservation-expiration'
-import { reservations } from '@/lib/schema'
+import { reservationNights, reservations } from '@/lib/schema'
+import { getNightsBetween } from '@/lib/reservation-rules'
 
 export async function GET(request: Request) {
   if (!verifyAdminRequest(request)) {
@@ -41,21 +42,56 @@ export async function PATCH(request: Request) {
   }
   try {
     await expirePendingReservationHolds()
-    const [updated] = await db.update(reservations)
-      .set({ status: 'confirmed', expiresAt: null })
-      .where(and(
-        eq(reservations.id, input.id),
-        eq(reservations.status, 'pending'),
-        gt(reservations.expiresAt, new Date()),
-      ))
-      .returning({ id: reservations.id })
-    if (!updated) return NextResponse.json({ error: 'La reserva ya no está pendiente.' }, { status: 409 })
+
+    const [reservation] = await db
+      .select()
+      .from(reservations)
+      .where(eq(reservations.id, input.id))
+      .limit(1)
+
+    if (!reservation) {
+      return NextResponse.json({ error: 'No se encontró la solicitud de reserva.' }, { status: 404 })
+    }
+    if (reservation.status === 'confirmed') {
+      return NextResponse.json({ error: 'Esta reserva ya está confirmada.' }, { status: 400 })
+    }
+
+    const nights = getNightsBetween(reservation.arrivalDate, reservation.departureDate)
+
+    await db.transaction(async (tx) => {
+      if (nights.length > 0) {
+        const busy = await tx
+          .select({ date: reservationNights.reservationDate })
+          .from(reservationNights)
+          .where(inArray(reservationNights.reservationDate, nights))
+
+        if (busy.length > 0) {
+          throw new Error('CONFLICT')
+        }
+
+        await tx.insert(reservationNights).values(
+          nights.map((reservationDate) => ({
+            reservationDate,
+            reservationId: reservation.id,
+          }))
+        )
+      }
+
+      await tx.update(reservations)
+        .set({ status: 'confirmed', expiresAt: null })
+        .where(eq(reservations.id, reservation.id))
+    })
+
     return NextResponse.json({ ok: true })
   } catch (error) {
+    if (error instanceof Error && error.message === 'CONFLICT') {
+      return NextResponse.json({ error: 'Una o más fechas de esta reserva ya fueron ocupadas por otra reserva confirmada o bloqueo manual.' }, { status: 409 })
+    }
     console.error('Failed to confirm reservation:', error)
     return NextResponse.json({ error: 'No fue posible confirmar la reserva.' }, { status: 500 })
   }
 }
+
 
 export async function DELETE(request: Request) {
   if (!verifyAdminRequest(request)) {
