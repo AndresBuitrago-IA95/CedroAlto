@@ -86,13 +86,24 @@ export function planReservationError(plan: Pick<EditablePlan, 'kind' | 'name'>) 
   return `Esa fecha no aplica para el plan ${plan.name}.`
 }
 
+function isValidDateString(str: string): boolean {
+  if (typeof str !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return false
+  const year = Number(str.slice(0, 4))
+  return year >= 2024 && year <= 2100
+}
+
 export function hasAllowedPlanReservationNights(plan: Pick<EditablePlan, 'kind' | 'name'>, arrivalDate: string, departureDate: string) {
+  if (!isValidDateString(arrivalDate) || !isValidDateString(departureDate)) return false
+  if (departureDate <= arrivalDate) return false
   const date = new Date(`${arrivalDate}T00:00:00.000Z`)
   const departure = new Date(`${departureDate}T00:00:00.000Z`)
+  if ((departure.getTime() - date.getTime()) > 90 * 86_400_000) return false
 
-  while (date < departure) {
+  let count = 0
+  while (date < departure && count < 90) {
     if (!isPlanReservationDate(plan, toDateKey(date))) return false
     date.setUTCDate(date.getUTCDate() + 1)
+    count++
   }
 
   return true
@@ -110,10 +121,13 @@ export function getMinReservationDate() {
 }
 
 export function getNightsBetween(arrivalDate: string, departureDate: string): string[] {
+  if (!isValidDateString(arrivalDate) || !isValidDateString(departureDate)) return []
+  if (departureDate <= arrivalDate) return []
   const nights: string[] = []
   const date = new Date(`${arrivalDate}T00:00:00.000Z`)
   const end = new Date(`${departureDate}T00:00:00.000Z`)
-  while (date < end) {
+  if ((end.getTime() - date.getTime()) > 90 * 86_400_000) return []
+  while (date < end && nights.length < 90) {
     nights.push(date.toISOString().slice(0, 10))
     date.setUTCDate(date.getUTCDate() + 1)
   }
@@ -122,6 +136,8 @@ export function getNightsBetween(arrivalDate: string, departureDate: string): st
 
 export function areNightsAvailable(arrivalDate: string, departureDate: string, unavailableNights: Set<string>): boolean {
   const nights = getNightsBetween(arrivalDate, departureDate)
+  if (nights.length === 0) return false
   return nights.every((night) => !unavailableNights.has(night))
 }
+
 

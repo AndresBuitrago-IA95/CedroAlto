@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useSWR from 'swr'
 import {
   ArrowRight,
@@ -52,6 +52,18 @@ function displayDate(date: string) {
   return new Intl.DateTimeFormat('es-CO', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00.000Z`))
 }
 
+function formatFieldDate(dateStr: string) {
+  if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return ''
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const val = new Date(Date.UTC(y, m - 1, d))
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(val)
+}
+
 function formatCOP(value: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
 }
@@ -88,6 +100,8 @@ export default function Page() {
   const [plan, setPlan] = useState(defaultSiteContent.plans[0].name)
   const [bookingError, setBookingError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const popoverRef = useRef<HTMLDivElement>(null)
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const { data: availability, mutate: refreshAvailability, error: availabilityError } = useSWR<{ dates: string[] }>('/api/reservations', async (url) => {
     const response = await fetch(url)
@@ -115,6 +129,73 @@ export default function Page() {
   const filters = ['Todo', ...new Set(content.gallery.map((item) => item.category))]
   const [heroFirstLine, heroSecondLine] = content.heroTitle.split(', ', 2)
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+        setPickerOpen(false)
+      }
+    }
+    if (pickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [pickerOpen])
+
+  function onSelectDay(date: string) {
+    if (selectedPlan.kind === 'day') {
+      if (unavailableDates.has(date)) {
+        setBookingError('Esa fecha se encuentra ocupada.')
+        return
+      }
+      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
+        setBookingError(selectedPlanDateError)
+        return
+      }
+      setBookingError('')
+      setArrivalDate(date)
+      setDepartureDate('')
+      setPickerOpen(false)
+      return
+    }
+
+    const selectingDeparture = Boolean(arrivalDate && !departureDate)
+    if (selectingDeparture) {
+      if (date <= arrivalDate) {
+        if (!unavailableDates.has(date) && (!dateRestrictedPlan || isPlanReservationDate(selectedPlan, date))) {
+          setBookingError('')
+          setArrivalDate(date)
+          setDepartureDate('')
+        }
+        return
+      }
+      if (!areNightsAvailable(arrivalDate, date, unavailableDates)) {
+        setBookingError('Una o más noches intermedias no están disponibles.')
+        return
+      }
+      if (dateRestrictedPlan && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
+        setBookingError(selectedPlanDateError)
+        return
+      }
+      setBookingError('')
+      setDepartureDate(date)
+      setPickerOpen(false)
+    } else {
+      if (unavailableDates.has(date)) {
+        setBookingError('Esa noche se encuentra ocupada.')
+        return
+      }
+      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
+        setBookingError(selectedPlanDateError)
+        return
+      }
+      setBookingError('')
+      setArrivalDate(date)
+      setDepartureDate('')
+    }
+  }
+
   return (
     <main>
       <header className="site-header">
@@ -135,7 +216,8 @@ export default function Page() {
           setBookingError('')
           const effectiveDepartureDate = selectedPlan.kind === 'day' && arrivalDate ? addDays(arrivalDate, 1) : departureDate
           if (!arrivalDate || !effectiveDepartureDate || effectiveDepartureDate <= arrivalDate) {
-            setBookingError('Selecciona una fecha válida para tu plan.')
+            setBookingError('Por favor selecciona las fechas en el calendario.')
+            setPickerOpen(true)
             return
           }
           if (arrivalDate < minArrivalDate) {
@@ -187,53 +269,28 @@ export default function Page() {
             setIsSubmitting(false)
           }
         }}>
-          <div className="booking-field"><CalendarDays size={17} /><label>Llegada (desde 3:00 p. m.)<input type="date" aria-label="Fecha de llegada" min={minArrivalDate} value={arrivalDate} onChange={(event) => {
-            const date = event.target.value
-            setArrivalDate(date)
-            setDepartureDate('')
-            if (!date) {
-              setBookingError('')
-              return
-            }
-            if (date.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-              const year = Number(date.slice(0, 4))
-              if (year >= 2024) {
-                if (date < minArrivalDate) {
-                  setBookingError('Las reservas deben realizarse con al menos un día de anticipación (no es posible reservar para el mismo día).')
-                } else if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
-                  setBookingError(selectedPlanDateError)
-                } else {
-                  setBookingError('')
-                }
-              }
-            } else {
-              setBookingError('')
-            }
-          }} required /></label></div>
-          {selectedPlan.kind !== 'day' && <div className="booking-field"><CalendarDays size={17} /><label>Salida (hasta 12:00 m.)<input type="date" aria-label="Fecha de salida" min={arrivalDate ? addDays(arrivalDate, 1) : addDays(minArrivalDate, 1)} value={departureDate} onChange={(event) => {
-            const date = event.target.value
-            setDepartureDate(date)
-            if (!date) {
-              setBookingError('')
-              return
-            }
-            if (date.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-              const year = Number(date.slice(0, 4))
-              if (year >= 2024) {
-                if (arrivalDate && date <= arrivalDate) {
-                  setBookingError('La fecha de salida debe ser posterior a la fecha de llegada.')
-                } else if (arrivalDate && !areNightsAvailable(arrivalDate, date, unavailableDates)) {
-                  setBookingError('Una o más noches en el rango seleccionado ya están ocupadas.')
-                } else if (dateRestrictedPlan && arrivalDate && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
-                  setBookingError(selectedPlanDateError)
-                } else {
-                  setBookingError('')
-                }
-              }
-            } else {
-              setBookingError('')
-            }
-          }} required /></label></div>}
+          <div className="booking-field booking-field-clickable" onClick={() => setPickerOpen((prev) => !prev)} role="button" tabIndex={0} aria-label="Abrir calendario para elegir fecha de llegada">
+            <CalendarDays size={17} />
+            <div className="booking-field-text">
+              <span className="booking-field-label">Llegada (desde 3:00 p. m.)</span>
+              <span className={`booking-field-value ${arrivalDate ? 'has-value' : 'placeholder'}`}>
+                {arrivalDate ? formatFieldDate(arrivalDate) : 'Abrir calendario'}
+              </span>
+            </div>
+          </div>
+
+          {selectedPlan.kind !== 'day' && (
+            <div className="booking-field booking-field-clickable" onClick={() => setPickerOpen(true)} role="button" tabIndex={0} aria-label="Abrir calendario para elegir fecha de salida">
+              <CalendarDays size={17} />
+              <div className="booking-field-text">
+                <span className="booking-field-label">Salida (hasta 12:00 m.)</span>
+                <span className={`booking-field-value ${departureDate ? 'has-value' : 'placeholder'}`}>
+                  {departureDate ? formatFieldDate(departureDate) : 'Abrir calendario'}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="booking-field"><Bird size={17} /><label>Plan<select aria-label="Plan de estadía" value={selectedPlan.name} onChange={(event) => {
             const nextPlan = content.plans.find((item) => item.name === event.target.value) ?? content.plans[0]
             setPlan(nextPlan.name)
@@ -242,6 +299,68 @@ export default function Page() {
             if (arrivalDate && (isWeekdayOnlyPlan(nextPlan) || isWeekendOnlyPlan(nextPlan)) && !isPlanReservationDate(nextPlan, arrivalDate)) setArrivalDate('')
           }}>{content.plans.map((item) => <option key={item.name}>{item.name}</option>)}</select></label></div>
           <button className="button button-dark booking-button" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Abriendo WhatsApp...' : 'Reservar por WhatsApp'} <ArrowRight size={15} /></button>
+
+          {pickerOpen && (
+            <div className="booking-popover" ref={popoverRef} role="dialog" aria-modal="true" aria-label="Selector de fechas">
+              <div className="popover-header">
+                <div className="popover-month-nav">
+                  <button type="button" aria-label="Mes anterior" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}><ChevronRight className="rotate-180" size={16} /></button>
+                  <strong>{new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' }).format(calendarMonth)}</strong>
+                  <button type="button" aria-label="Mes siguiente" onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}><ChevronRight size={16} /></button>
+                </div>
+                <button type="button" className="popover-close-btn" aria-label="Cerrar selector" onClick={() => setPickerOpen(false)}><X size={16} /></button>
+              </div>
+
+              <p className="popover-guide">
+                {selectedPlan.kind === 'day'
+                  ? 'Toca el día de tu plan pasadía.'
+                  : !arrivalDate
+                  ? <span><b>Paso 1:</b> Elige tu fecha de <b>llegada</b> (Check-in 3:00 p. m.)</span>
+                  : !departureDate
+                  ? <span><b>Paso 2:</b> Elige tu fecha de <b>salida</b> (Check-out 12:00 m.)</span>
+                  : <span>Fechas seleccionadas. Toca otra fecha si deseas cambiarlas.</span>}
+              </p>
+
+              <div className="weekdays">{['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => <span key={day}>{day}</span>)}</div>
+              <div className="calendar-grid">
+                {calendarDays.map((date, index) => {
+                  if (!date) return <span key={`pop-empty-${index}`} aria-hidden="true" />
+                  const isPast = date < minArrivalDate
+                  const isNightBusy = unavailableDates.has(date)
+                  const selected = date === arrivalDate || date === departureDate
+                  const inRange = Boolean(arrivalDate && departureDate && date > arrivalDate && date < departureDate)
+                  const selectingDeparture = Boolean(selectedPlan.kind !== 'day' && arrivalDate && !departureDate)
+                  const isPossibleDeparture = Boolean(
+                    selectingDeparture &&
+                    date > arrivalDate &&
+                    areNightsAvailable(arrivalDate, date, unavailableDates) &&
+                    (!dateRestrictedPlan || hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date))
+                  )
+                  const isPlanRestricted = dateRestrictedPlan && (selectingDeparture ? !isPossibleDeparture : !isPlanReservationDate(selectedPlan, date))
+                  const isBusy = selectingDeparture ? !isPossibleDeparture : isNightBusy
+                  const isDisabled = isPast || (selectingDeparture ? !isPossibleDeparture : (isNightBusy || isPlanRestricted))
+
+                  return (
+                    <button
+                      key={`pop-${date}`}
+                      type="button"
+                      className={`${isBusy || isPlanRestricted ? 'busy' : ''}${selected ? ' selected' : ''}${inRange ? ' in-range' : ''}${isPossibleDeparture ? ' departure-available' : ''}`}
+                      disabled={isDisabled}
+                      onClick={() => onSelectDay(date)}
+                    >
+                      {Number(date.slice(-2))}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="popover-footer">
+                <button type="button" className="popover-clear-btn" onClick={() => { setArrivalDate(''); setDepartureDate(''); setBookingError('') }}>Borrar fechas</button>
+                <button type="button" className="popover-done-btn" onClick={() => setPickerOpen(false)}>Cerrar</button>
+              </div>
+            </div>
+          )}
+
           {(availabilityError || bookingError) && <div className="booking-error" role="alert">
             <p>{bookingError || 'No fue posible consultar la disponibilidad en línea en este momento.'}</p>
             <a href={`${whatsappUrl}&text=${encodeURIComponent(`Hola ${content.businessName}, ¿me ayudan a confirmar disponibilidad para ${arrivalDate ? displayDate(arrivalDate) : 'la fecha que deseo'}?`)}`} target="_blank" rel="noreferrer">Confirmar disponibilidad por WhatsApp <ArrowRight size={14} /></a>
@@ -297,55 +416,11 @@ export default function Page() {
                   className={`${isBusy || isPlanRestricted ? 'busy' : ''}${selected ? ' selected' : ''}${inRange ? ' in-range' : ''}${isPossibleDeparture ? ' departure-available' : ''}`}
                   disabled={isDisabled}
                   aria-label={`${isPlanRestricted ? 'No disponible para este plan' : isBusy ? 'Noche ocupada' : 'Disponible'}: ${displayDate(date)}${selected ? ', seleccionado' : ''}`}
-                  onClick={() => {
-                    if (selectedPlan.kind === 'day') {
-                      if (isNightBusy) {
-                        setBookingError('Esa fecha se encuentra ocupada.')
-                        return
-                      }
-                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
-                        setBookingError(selectedPlanDateError)
-                        return
-                      }
-                      setBookingError('')
-                      setArrivalDate(date)
-                      setDepartureDate('')
-                    } else if (selectingDeparture) {
-                      if (date <= arrivalDate) {
-                        if (!isNightBusy && (!dateRestrictedPlan || isPlanReservationDate(selectedPlan, date))) {
-                          setBookingError('')
-                          setArrivalDate(date)
-                          setDepartureDate('')
-                        }
-                        return
-                      }
-                      if (!areNightsAvailable(arrivalDate, date, unavailableDates)) {
-                        setBookingError('Una o más noches intermedias no están disponibles.')
-                        return
-                      }
-                      if (dateRestrictedPlan && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
-                        setBookingError(selectedPlanDateError)
-                        return
-                      }
-                      setBookingError('')
-                      setDepartureDate(date)
-                    } else {
-                      if (isNightBusy) {
-                        setBookingError('Esa noche se encuentra ocupada.')
-                        return
-                      }
-                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
-                        setBookingError(selectedPlanDateError)
-                        return
-                      }
-                      setBookingError('')
-                      setArrivalDate(date)
-                      setDepartureDate('')
-                    }
-                  }}
+                  onClick={() => onSelectDay(date)}
                 >{Number(date.slice(-2))}</button>
               })}
             </div>
+
             <div className="calendar-legend"><span><i className="available" />Disponible</span><span><i className="busy-dot" />Noche ocupada</span><span><i className="selected-dot" />Seleccionado</span></div>
             <p className="calendar-hint">{weekdayOnly ? 'Este plan solo está disponible de lunes a jueves (no aplica festivos). La salida puede ser viernes a las 12:00 m.' : weekendOnly ? 'Este plan aplica viernes, sábados, domingos y festivos de Colombia.' : selectedPlan.kind === 'day' ? `Selecciona la fecha de tu plan ${selectedPlan.name}.` : arrivalDate && !departureDate ? 'Ahora selecciona tu fecha de salida (Check-out 12:00 m.).' : 'Check-in: 3:00 p. m. · Check-out: 12:00 m. Solo se bloquea la noche; el día de salida queda libre al mediodía para otro ingreso. Reservas con al menos 1 día de anticipación.'}</p>
           </div>
