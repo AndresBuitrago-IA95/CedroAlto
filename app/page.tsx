@@ -189,26 +189,50 @@ export default function Page() {
         }}>
           <div className="booking-field"><CalendarDays size={17} /><label>Llegada (desde 3:00 p. m.)<input type="date" aria-label="Fecha de llegada" min={minArrivalDate} value={arrivalDate} onChange={(event) => {
             const date = event.target.value
-            if (date && date < minArrivalDate) {
-              window.alert('Las reservas deben realizarse con al menos un día de anticipación (no es posible reservar para el mismo día).')
-              return
-            }
-            if (dateRestrictedPlan && date && !isPlanReservationDate(selectedPlan, date)) {
-              window.alert(selectedPlanDateError)
-              return
-            }
-            setBookingError('')
             setArrivalDate(date)
             setDepartureDate('')
+            if (!date) {
+              setBookingError('')
+              return
+            }
+            if (date.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+              const year = Number(date.slice(0, 4))
+              if (year >= 2024) {
+                if (date < minArrivalDate) {
+                  setBookingError('Las reservas deben realizarse con al menos un día de anticipación (no es posible reservar para el mismo día).')
+                } else if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
+                  setBookingError(selectedPlanDateError)
+                } else {
+                  setBookingError('')
+                }
+              }
+            } else {
+              setBookingError('')
+            }
           }} required /></label></div>
           {selectedPlan.kind !== 'day' && <div className="booking-field"><CalendarDays size={17} /><label>Salida (hasta 12:00 m.)<input type="date" aria-label="Fecha de salida" min={arrivalDate ? addDays(arrivalDate, 1) : addDays(minArrivalDate, 1)} value={departureDate} onChange={(event) => {
             const date = event.target.value
-            if (dateRestrictedPlan && arrivalDate && date && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
-              window.alert(selectedPlanDateError)
+            setDepartureDate(date)
+            if (!date) {
+              setBookingError('')
               return
             }
-            setBookingError('')
-            setDepartureDate(date)
+            if (date.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+              const year = Number(date.slice(0, 4))
+              if (year >= 2024) {
+                if (arrivalDate && date <= arrivalDate) {
+                  setBookingError('La fecha de salida debe ser posterior a la fecha de llegada.')
+                } else if (arrivalDate && !areNightsAvailable(arrivalDate, date, unavailableDates)) {
+                  setBookingError('Una o más noches en el rango seleccionado ya están ocupadas.')
+                } else if (dateRestrictedPlan && arrivalDate && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
+                  setBookingError(selectedPlanDateError)
+                } else {
+                  setBookingError('')
+                }
+              }
+            } else {
+              setBookingError('')
+            }
           }} required /></label></div>}
           <div className="booking-field"><Bird size={17} /><label>Plan<select aria-label="Plan de estadía" value={selectedPlan.name} onChange={(event) => {
             const nextPlan = content.plans.find((item) => item.name === event.target.value) ?? content.plans[0]
@@ -275,36 +299,46 @@ export default function Page() {
                   aria-label={`${isPlanRestricted ? 'No disponible para este plan' : isBusy ? 'Noche ocupada' : 'Disponible'}: ${displayDate(date)}${selected ? ', seleccionado' : ''}`}
                   onClick={() => {
                     if (selectedPlan.kind === 'day') {
-                      if (isNightBusy) return
-                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
-                        window.alert(selectedPlanDateError)
+                      if (isNightBusy) {
+                        setBookingError('Esa fecha se encuentra ocupada.')
                         return
                       }
+                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
+                        setBookingError(selectedPlanDateError)
+                        return
+                      }
+                      setBookingError('')
                       setArrivalDate(date)
                       setDepartureDate('')
                     } else if (selectingDeparture) {
                       if (date <= arrivalDate) {
                         if (!isNightBusy && (!dateRestrictedPlan || isPlanReservationDate(selectedPlan, date))) {
+                          setBookingError('')
                           setArrivalDate(date)
                           setDepartureDate('')
                         }
                         return
                       }
                       if (!areNightsAvailable(arrivalDate, date, unavailableDates)) {
-                        window.alert('Una o más noches intermedias no están disponibles.')
+                        setBookingError('Una o más noches intermedias no están disponibles.')
                         return
                       }
                       if (dateRestrictedPlan && !hasAllowedPlanReservationNights(selectedPlan, arrivalDate, date)) {
-                        window.alert(selectedPlanDateError)
+                        setBookingError(selectedPlanDateError)
                         return
                       }
+                      setBookingError('')
                       setDepartureDate(date)
                     } else {
-                      if (isNightBusy) return
-                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
-                        window.alert(selectedPlanDateError)
+                      if (isNightBusy) {
+                        setBookingError('Esa noche se encuentra ocupada.')
                         return
                       }
+                      if (dateRestrictedPlan && !isPlanReservationDate(selectedPlan, date)) {
+                        setBookingError(selectedPlanDateError)
+                        return
+                      }
+                      setBookingError('')
                       setArrivalDate(date)
                       setDepartureDate('')
                     }
